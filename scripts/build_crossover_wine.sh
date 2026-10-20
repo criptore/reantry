@@ -98,7 +98,13 @@ JOBS="${JOBS:-$(sysctl -n hw.ncpu)}"
 EXTRA_CONFIGURE_ARGS="${EXTRA_CONFIGURE_ARGS:-}"
 WINE_LD_CLASSIC="${WINE_LD_CLASSIC:-0}"
 
-BREW_PREFIX="/usr/local"
+BREW_PREFIX="${BREW_PREFIX:-}"
+if [ -z "$BREW_PREFIX" ]; then
+    for cand in /usr/local "$HOME/homebrew"; do
+        if [ -x "$cand/bin/brew" ]; then BREW_PREFIX="$cand"; break; fi
+    done
+fi
+BREW_PREFIX="${BREW_PREFIX:-/usr/local}"
 BREW="$BREW_PREFIX/bin/brew"
 BREW_PACKAGES="bison flex pkgconf gettext freetype gnutls sdl2"
 
@@ -211,10 +217,10 @@ fi
 if ! clang --version >/dev/null 2>&1; then
     die "clang does not run. Install or repair the Xcode Command Line Tools: xcode-select --install"
 fi
-if [ ! -x "$BREW" ]; then
-    die "no x86_64 Homebrew in $BREW_PREFIX. Install it next to the native one with:
+if [ -z "${DEPS_DIR:-}" ] && [ ! -x "$BREW" ]; then
+    die "no x86_64 Homebrew in $BREW_PREFIX and DEPS_DIR is not set. Install an x86_64 Homebrew next to the native one with:
     arch -x86_64 /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"
-It only adds /usr/local and does not touch /opt/homebrew."
+or point DEPS_DIR at a folder holding the x86_64 runtime libraries (freetype, gnutls, gmp, SDL2 and their dependencies)."
 fi
 
 free_gb=$(df -g "$WORK_DIR" | awk 'NR==2 {print $4}')
@@ -276,6 +282,10 @@ mkdir -p "$DOWNLOADS" "$STAMPS"
 # ---------------------------------------------------------------------------
 
 install_dependencies() {
+    if [ -n "${DEPS_DIR:-}" ]; then
+        log "Using prebuilt runtime libraries from $DEPS_DIR, skipping Homebrew install"
+        return 0
+    fi
     local package
     for package in $BREW_PACKAGES; do
         if "$BREW" list --versions "$package" >/dev/null 2>&1; then
@@ -381,6 +391,17 @@ bundle_dylib() {
 
 brew_dylib() {
     local formula=$1 pattern=$2 prefix match
+    if [ -n "${DEPS_DIR:-}" ]; then
+        match=$(find "$DEPS_DIR" -maxdepth 1 -name "$pattern" -type f | head -1)
+        if [ -z "$match" ]; then
+            match=$(find "$DEPS_DIR" -maxdepth 1 -name "$pattern" | head -1)
+        fi
+        if [ -z "$match" ]; then
+            die "no $pattern in $DEPS_DIR"
+        fi
+        echo "$match"
+        return 0
+    fi
     prefix=$("$BREW" --prefix "$formula")
     match=$(find "$prefix/lib" -maxdepth 1 -name "$pattern" -type f | head -1)
     if [ -z "$match" ]; then
@@ -610,20 +631,33 @@ run_tests() {
 run_step dependencies install_dependencies
 
 # A clean environment: x86_64 Homebrew first, never the arm64 one.
-BISON_PREFIX=$("$BREW" --prefix bison)
-FLEX_PREFIX=$("$BREW" --prefix flex)
-GETTEXT_PREFIX=$("$BREW" --prefix gettext)
-# llvm-mingw goes last: it has its own "clang", which must not replace Apple's for the Unix side.
-export PATH="$BISON_PREFIX/bin:$FLEX_PREFIX/bin:$GETTEXT_PREFIX/bin:$BREW_PREFIX/bin:/usr/bin:/bin:/usr/sbin:/sbin:$TOOLCHAIN/bin"
-export PKG_CONFIG="$BREW_PREFIX/bin/pkg-config"
-export PKG_CONFIG_PATH="$BREW_PREFIX/lib/pkgconfig:$BREW_PREFIX/share/pkgconfig"
+if [ -x "$BREW" ]; then
+    BISON_PREFIX=$("$BREW" --prefix bison)
+    FLEX_PREFIX=$("$BREW" --prefix flex)
+    GETTEXT_PREFIX=$("$BREW" --prefix gettext)
+    export PATH="$BISON_PREFIX/bin:$FLEX_PREFIX/bin:$GETTEXT_PREFIX/bin:$BREW_PREFIX/bin:/usr/bin:/bin:/usr/sbin:/sbin:$TOOLCHAIN/bin"
+    if [ -z "${DEPS_DIR:-}" ]; then
+        export PKG_CONFIG="$BREW_PREFIX/bin/pkg-config"
+        export PKG_CONFIG_PATH="$BREW_PREFIX/lib/pkgconfig:$BREW_PREFIX/share/pkgconfig"
+    else
+        export PKG_CONFIG="/usr/bin/pkg-config"
+        export PKG_CONFIG_PATH=""
+    fi
+else
+    BISON_PREFIX=""
+    FLEX_PREFIX=""
+    GETTEXT_PREFIX=""
+    export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$TOOLCHAIN/bin"
+    export PKG_CONFIG="/usr/bin/pkg-config"
+    export PKG_CONFIG_PATH=""
+fi
 unset PKG_CONFIG_LIBDIR CPATH LIBRARY_PATH DYLD_LIBRARY_PATH DYLD_FALLBACK_LIBRARY_PATH
 export MACOSX_DEPLOYMENT_TARGET="14.0"
 export CC="/usr/bin/clang"
 export CXX="/usr/bin/clang++"
-export CFLAGS="-O2 -Wno-deprecated-declarations -Wno-format -Wno-incompatible-function-pointer-types"
+export CFLAGS="-arch x86_64 -O2 -Wno-deprecated-declarations -Wno-format -Wno-incompatible-function-pointer-types"
 export CROSSCFLAGS="-O2 -Wno-error=incompatible-pointer-types -Wno-error=int-conversion"
-LDFLAGS="-Wl,-headerpad_max_install_names"
+LDFLAGS="-arch x86_64 -Wl,-headerpad_max_install_names"
 if [ "$WINE_LD_CLASSIC" = "1" ]; then
     LDFLAGS="-Wl,-ld_classic $LDFLAGS"
 fi
@@ -654,7 +688,7 @@ CONFIGURE_ARGS=(
     --without-ffmpeg
     --without-fontconfig
     --with-freetype
-    --with-gettext
+    --without-gettext
     --without-gettextpo
     --without-gphoto
     --with-gnutls
@@ -662,7 +696,7 @@ CONFIGURE_ARGS=(
     --without-gstreamer
     --without-inotify
     --without-krb5
-    --with-mingw="$TOOLCHAIN/bin/clang"
+    --with-mingw=llvm-mingw
     --without-netapi
     --with-opencl
     --without-opengl
