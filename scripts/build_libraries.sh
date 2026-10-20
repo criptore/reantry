@@ -4,7 +4,8 @@ set -euo pipefail
 # Build Libraries.tar.gz, the Wine libraries downloaded by the setup wizard.
 #
 # Usage:
-#   ./scripts/build_libraries.sh [--engine gptk|staging|sikarugir] [--gptk <path>] [--version X.Y.Z] [--publish]
+#   ./scripts/build_libraries.sh [--engine gptk|staging|sikarugir|crossover] [--wine-dir <path>]
+#                                [--gptk <path>] [--version X.Y.Z] [--publish]
 #
 #   --engine <name>  Wine build to package. Defaults to gptk.
 #                    gptk:    Gcenx's Game Porting Toolkit build (CrossOver based, D3DMetal
@@ -14,7 +15,12 @@ set -euo pipefail
 #                    sikarugir: Sikarugir's WS12WineSikarugir Wine 11.0 (unified wow64, macOS
 #                             patches, DXMT's winemetal.dll). Version set with SIKARUGIR_ENGINE
 #                             (default WS12WineSikarugir11.0_1).
-#   --gptk <path>    staging engine only. Game Porting Toolkit to bundle D3DMetal from:
+#                    crossover: Wine built from the CodeWeavers CrossOver sources by
+#                             scripts/build_crossover_wine.sh, given with --wine-dir.
+#                             Optionally merged with Apple's D3DMetal through --gptk.
+#   --wine-dir <path> crossover engine only. Wine folder produced by build_crossover_wine.sh
+#                    (bin/wine, bin/wineserver, lib/, share/). It is copied, not moved.
+#   --gptk <path>    staging and crossover engines only. Game Porting Toolkit to bundle D3DMetal from:
 #                    the mounted DMG
 #                    (e.g. "/Volumes/Evaluation environment for Windows games 3.0")
 #                    or its "redist" folder. Download it from
@@ -47,6 +53,7 @@ OUTPUT_DIR="$PROJECT_DIR/build"
 
 ENGINE="gptk"
 GPTK_PATH=""
+WINE_DIR=""
 LIBRARIES_VERSION=""
 PUBLISH=0
 
@@ -61,6 +68,7 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --engine) require_value "$@"; ENGINE="$2"; shift 2 ;;
         --gptk) require_value "$@"; GPTK_PATH="$2"; shift 2 ;;
+        --wine-dir) require_value "$@"; WINE_DIR="$2"; shift 2 ;;
         --version) require_value "$@"; LIBRARIES_VERSION="$2"; shift 2 ;;
         --publish) PUBLISH=1; shift ;;
         *) echo "Unknown option: $1"; exit 1 ;;
@@ -68,17 +76,35 @@ while [ $# -gt 0 ]; do
 done
 
 case "$ENGINE" in
-    gptk|staging|sikarugir) ;;
-    *) echo "Error: --engine must be gptk, staging or sikarugir, got '$ENGINE'"; exit 1 ;;
+    gptk|staging|sikarugir|crossover) ;;
+    *) echo "Error: --engine must be gptk, staging, sikarugir or crossover, got '$ENGINE'"; exit 1 ;;
 esac
+if [ "$ENGINE" = "crossover" ]; then
+    if [ -z "$WINE_DIR" ]; then
+        echo "Error: --engine crossover needs --wine-dir <path>, the folder built by"
+        echo "       scripts/build_crossover_wine.sh"
+        exit 1
+    fi
+    if [ ! -x "$WINE_DIR/bin/wine" ] || [ ! -x "$WINE_DIR/bin/wineserver" ] || [ ! -d "$WINE_DIR/lib/wine" ]; then
+        echo "Error: $WINE_DIR does not look like a Wine folder (bin/wine, bin/wineserver, lib/wine)"
+        exit 1
+    fi
+    WINE_DIR="$(cd "$WINE_DIR" && pwd)"
+    # Written by build_crossover_wine.sh: "Wine built from the CrossOver X.Y.Z sources ..."
+    CROSSOVER_VERSION=$(sed -n '1s/.*CrossOver \([0-9.]*\) .*/\1/p' "$WINE_DIR/share/doc/wine/SOURCE.txt" 2>/dev/null || true)
+    CROSSOVER_VERSION="${CROSSOVER_VERSION:-unknown}"
+elif [ -n "$WINE_DIR" ]; then
+    echo "Error: --wine-dir is only used with --engine crossover"
+    exit 1
+fi
 if [ "$ENGINE" = "gptk" ] && [ -n "$GPTK_PATH" ]; then
     echo "Error: --gptk is not needed with --engine gptk, D3DMetal is already included."
-    echo "       Use --engine staging to merge Apple's Game Porting Toolkit into Wine Staging."
+    echo "       Use --engine staging or crossover to merge Apple's Game Porting Toolkit into Wine."
     exit 1
 fi
 if [ "$ENGINE" = "sikarugir" ] && [ -n "$GPTK_PATH" ]; then
     echo "Error: --gptk cannot be used with --engine sikarugir, it ships its own DXMT based graphics."
-    echo "       Use --engine staging to merge Apple's Game Porting Toolkit into Wine Staging."
+    echo "       Use --engine staging or crossover to merge Apple's Game Porting Toolkit into Wine."
     exit 1
 fi
 
@@ -111,6 +137,12 @@ if [ "$ENGINE" = "gptk" ]; then
 elif [ "$ENGINE" = "sikarugir" ]; then
     download "https://github.com/Sikarugir-App/Engines/releases/download/v1.0/$SIKARUGIR_ENGINE.tar.xz" \
         "$DOWNLOADS/wine.tar.xz"
+elif [ "$ENGINE" = "crossover" ]; then
+    # Only needed when the Wine folder has no MoltenVK of its own.
+    if [ ! -f "$WINE_DIR/lib/libMoltenVK.dylib" ]; then
+        download "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar" \
+            "$DOWNLOADS/moltenvk.tar"
+    fi
 else
     download "https://github.com/Gcenx/macOS_Wine_builds/releases/download/$WINE_VERSION/wine-$WINE_FLAVOR-$WINE_VERSION-osx64.tar.xz" \
         "$DOWNLOADS/wine.tar.xz"
@@ -129,15 +161,22 @@ if [ "$ENGINE" = "gptk" ]; then
     echo "==> Installing Game Porting Toolkit $GPTK_VERSION"
 elif [ "$ENGINE" = "sikarugir" ]; then
     echo "==> Installing Sikarugir engine $SIKARUGIR_ENGINE"
+elif [ "$ENGINE" = "crossover" ]; then
+    echo "==> Installing CrossOver Wine from $WINE_DIR"
 else
     echo "==> Installing Wine $WINE_FLAVOR $WINE_VERSION"
 fi
-tar -xf "$DOWNLOADS/wine.tar.xz" -C "$BUILD_DIR/extract"
-if [ "$ENGINE" = "sikarugir" ]; then
+if [ "$ENGINE" = "crossover" ]; then
+    # ditto keeps symlinks, permissions and code signatures.
+    ditto "$WINE_DIR" "$BUILD_DIR/extract/crossover-wine"
+    WINE_ROOT="$BUILD_DIR/extract/crossover-wine"
+elif [ "$ENGINE" = "sikarugir" ]; then
+    tar -xf "$DOWNLOADS/wine.tar.xz" -C "$BUILD_DIR/extract"
     # Layout: wswine.bundle/{bin,lib,share,version,dxmt_extescape}. version and dxmt_extescape
     # stay inside Libraries/Wine.
     WINE_ROOT=$(find "$BUILD_DIR/extract" -maxdepth 3 -type d -name "wswine.bundle" | head -1)
 else
+    tar -xf "$DOWNLOADS/wine.tar.xz" -C "$BUILD_DIR/extract"
     WINE_ROOT=$(find "$BUILD_DIR/extract" -maxdepth 4 -type d -path "*.app/Contents/Resources/wine" | head -1)
 fi
 if [ -z "$WINE_ROOT" ]; then
@@ -172,6 +211,14 @@ elif [ "$ENGINE" = "sikarugir" ]; then
     if [ ! -x "$LIBRARIES/Wine/bin/wine" ] || [ ! -e "$LIBRARIES/Wine/bin/wineserver" ]; then
         echo "Error: bin/wine or bin/wineserver not found in the Sikarugir archive"
         exit 1
+    fi
+elif [ "$ENGINE" = "crossover" ]; then
+    if [ -f "$LIBRARIES/Wine/lib/libMoltenVK.dylib" ]; then
+        echo "==> Keeping the MoltenVK bundled by build_crossover_wine.sh"
+    else
+        echo "==> Installing MoltenVK $MOLTENVK_VERSION"
+        tar -xf "$DOWNLOADS/moltenvk.tar" -C "$BUILD_DIR/extract"
+        cp "$BUILD_DIR/extract/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" "$LIBRARIES/Wine/lib/libMoltenVK.dylib"
     fi
 else
     echo "==> Installing MoltenVK $MOLTENVK_VERSION"
@@ -266,6 +313,8 @@ if [ "$ENGINE" = "gptk" ]; then
     echo "    Game Porting Toolkit $GPTK_VERSION (D3DMetal included), DXVK $DXVK_VERSION, winetricks $WINETRICKS_VERSION"
 elif [ "$ENGINE" = "sikarugir" ]; then
     echo "    Sikarugir engine $SIKARUGIR_ENGINE (DXMT included), DXVK $DXVK_VERSION, winetricks $WINETRICKS_VERSION"
+elif [ "$ENGINE" = "crossover" ]; then
+    echo "    CrossOver $CROSSOVER_VERSION Wine from $WINE_DIR, DXVK $DXVK_VERSION, winetricks $WINETRICKS_VERSION"
 else
     echo "    Wine $WINE_FLAVOR $WINE_VERSION, DXVK $DXVK_VERSION, MoltenVK $MOLTENVK_VERSION, winetricks $WINETRICKS_VERSION"
 fi
