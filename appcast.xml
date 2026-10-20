@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+    <channel>
+        <title>Moonshine</title>
+        <link>https://raw.githubusercontent.com/criptore/reantry/main/appcast.xml</link>
+        <description>Moonshine updates</description>
+        <language>en</language>
+    </channel>
+</rss>
