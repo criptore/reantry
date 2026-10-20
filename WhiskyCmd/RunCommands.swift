@@ -73,7 +73,7 @@ extension Whisky {
 
     struct Run: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
-            abstract: "Run a program with Whisky.",
+            abstract: "Run a program with Reantry.",
             discussion: """
             Without --wait, the program is started in Terminal. With --wait, it runs attached to this command \
             with the bottle's graphics backend, and the command returns when it ends. Options go before the bottle.
