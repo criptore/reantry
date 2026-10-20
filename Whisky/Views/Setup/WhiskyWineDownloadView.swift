@@ -18,6 +18,7 @@
 
 import SwiftUI
 import WhiskyKit
+import os.log
 
 struct WhiskyWineDownloadView: View {
     @State private var fractionProgress: Double = 0
@@ -76,12 +77,16 @@ struct WhiskyWineDownloadView: View {
         guard let url = urls.first else { return }
         let fallbacks = Array(urls.dropFirst())
 
-        downloadTask = URLSession(configuration: .ephemeral).downloadTask(with: url) { url, response, _ in
+        downloadTask = URLSession(configuration: .ephemeral).downloadTask(with: url) { downloadedURL, response, _ in
             let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+            // URLSession deletes the downloaded file as soon as this handler returns, so keep it here
+            let localURL = statusCode == 200 || fallbacks.isEmpty
+                ? downloadedURL.flatMap(Self.keepDownloadedFile)
+                : nil
             Task.detached {
                 await MainActor.run {
-                    if let url = url, statusCode == 200 || fallbacks.isEmpty {
-                        tarLocation = url
+                    if let localURL = localURL {
+                        tarLocation = localURL
                         proceed()
                     } else {
                         startDownload(from: fallbacks)
@@ -97,14 +102,29 @@ struct WhiskyWineDownloadView: View {
                     if completedBytes > 0 {
                         downloadSpeed = Double(completedBytes) / elapsedTime
                     }
-                    totalBytes = task.countOfBytesExpectedToReceive
+                    // The server may not send a size, which leaves the expected count at -1
+                    totalBytes = max(task.countOfBytesExpectedToReceive, 0)
                     completedBytes = task.countOfBytesReceived
-                    fractionProgress = Double(completedBytes) / Double(totalBytes)
+                    fractionProgress = totalBytes > 0 ? Double(completedBytes) / Double(totalBytes) : 0
                 }
             }
         }
         startTime = Date()
         downloadTask?.resume()
+    }
+
+    /// Moves a file that URLSession is about to delete to a location owned by the app.
+    nonisolated private static func keepDownloadedFile(_ downloadedURL: URL) -> URL? {
+        let destination = FileManager.default.temporaryDirectory
+            .appending(path: UUID().uuidString)
+            .appendingPathExtension(downloadedURL.pathExtension)
+        do {
+            try FileManager.default.moveItem(at: downloadedURL, to: destination)
+            return destination
+        } catch {
+            Logger.wineKit.error("Failed to keep downloaded WhiskyWine archive: \(error)")
+            return nil
+        }
     }
 
     func formatBytes(bytes: Int64) -> String {
@@ -116,7 +136,7 @@ struct WhiskyWineDownloadView: View {
 
     func shouldShowEstimate() -> Bool {
         let elapsedTime = Date().timeIntervalSince(startTime ?? Date())
-        return Int(elapsedTime.rounded()) > 5 && completedBytes != 0
+        return Int(elapsedTime.rounded()) > 5 && completedBytes != 0 && totalBytes > 0
     }
 
     func formatRemainingTime(remainingBytes: Int64) -> String {
