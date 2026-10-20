@@ -27,14 +27,14 @@ body:
     id: logs
     attributes:
       label: Logs
-      description: Please provide the logs from the launched Wine process. These can be found by pressing `CMD + L` in Whisky.
+      description: Please provide the logs from the launched Wine process. These can be found by pressing `CMD + L` in Moonshine.
       render: bash
     validations:
       required: true
   - type: dropdown
     id: whisky-version
     attributes:
-      label: What version of Whisky are you using?
+      label: What version of Moonshine are you using?
       options:
         - "2.3.2"
         - "<2.3.2"
@@ -46,6 +46,16 @@ body:
       label: What version of macOS are you using?
       options:
         - "Sonoma (macOS 14)"
+    validations:
+      required: true
+  - type: dropdown
+    id: graphics-backend
+    attributes:
+      label: Graphics backend
+      options:
+        - "D3DMetal"
+        - "DXVK"
+        - "WineD3D"
     validations:
       required: true
   - type: checkboxes
