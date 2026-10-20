@@ -47,7 +47,9 @@ public class WhiskyWineInstaller {
 
     /// The `bin` directory of the given runtime, or of the default runtime if it is `nil` or not installed
     public static func binFolder(for runtime: String?) -> URL {
-        guard let runtime else { return binFolder }
+        guard let runtime, !runtime.isEmpty, !runtime.contains("/"), runtime != "..", runtime != "." else {
+            return binFolder
+        }
         let folder = runtimesFolder.appending(path: runtime).appending(path: "bin")
         guard FileManager.default.fileExists(atPath: folder.path(percentEncoded: false)) else { return binFolder }
         return folder

@@ -117,7 +117,8 @@ public struct BottleWineConfig: Codable, Equatable {
         self.windowsVersion = try container.decodeIfPresent(WinVersion.self, forKey: .windowsVersion) ?? .win10
         self.enhancedSync = try container.decodeIfPresent(EnhancedSync.self, forKey: .enhancedSync) ?? .msync
         self.avxEnabled = try container.decodeIfPresent(Bool.self, forKey: .avxEnabled) ?? false
-        self.graphicsBackend = try container.decodeIfPresent(GraphicsBackend.self, forKey: .graphicsBackend)
+        // An unknown backend, written by a newer version, falls back to the default instead of failing the decode
+        self.graphicsBackend = try? container.decodeIfPresent(GraphicsBackend.self, forKey: .graphicsBackend)
         self.wineRuntime = try container.decodeIfPresent(String.self, forKey: .wineRuntime)
     }
     // swiftlint:enable line_length
