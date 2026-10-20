@@ -104,7 +104,8 @@ struct WhiskyWineDownloadView: View {
                     }
                     totalBytes = task.countOfBytesExpectedToReceive
                     completedBytes = task.countOfBytesReceived
-                    fractionProgress = Double(completedBytes) / Double(totalBytes)
+                    // The server may not send a size, which leaves totalBytes at 0 or -1
+                    fractionProgress = totalBytes > 0 ? Double(completedBytes) / Double(totalBytes) : 0
                 }
             }
         }
