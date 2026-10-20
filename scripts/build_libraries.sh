@@ -37,10 +37,17 @@ GPTK_PATH=""
 LIBRARIES_VERSION=""
 PUBLISH=0
 
+require_value() {
+    if [ $# -lt 2 ] || [ -z "$2" ]; then
+        echo "Error: $1 needs a value"
+        exit 1
+    fi
+}
+
 while [ $# -gt 0 ]; do
     case "$1" in
-        --gptk) GPTK_PATH="$2"; shift 2 ;;
-        --version) LIBRARIES_VERSION="$2"; shift 2 ;;
+        --gptk) require_value "$@"; GPTK_PATH="$2"; shift 2 ;;
+        --version) require_value "$@"; LIBRARIES_VERSION="$2"; shift 2 ;;
         --publish) PUBLISH=1; shift ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
@@ -50,11 +57,11 @@ if [ -z "$LIBRARIES_VERSION" ]; then
     IFS=. read -r MAJOR MINOR PATCH <<< "$WINE_VERSION"
     LIBRARIES_VERSION="${MAJOR}.${MINOR:-0}.${PATCH:-0}"
 fi
-IFS=. read -r VERSION_MAJOR VERSION_MINOR VERSION_PATCH <<< "$LIBRARIES_VERSION"
-if [ -z "${VERSION_PATCH:-}" ]; then
-    echo "Error: --version must look like X.Y.Z"
+if ! [[ "$LIBRARIES_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "Error: version must look like X.Y.Z, got '$LIBRARIES_VERSION'"
     exit 1
 fi
+IFS=. read -r VERSION_MAJOR VERSION_MINOR VERSION_PATCH <<< "$LIBRARIES_VERSION"
 
 download() {
     echo "    $1"
@@ -63,6 +70,7 @@ download() {
 
 echo "==> Preparing $BUILD_DIR"
 rm -rf "$BUILD_DIR"
+trap 'rm -rf "$BUILD_DIR"' EXIT
 mkdir -p "$BUILD_DIR/downloads" "$BUILD_DIR/extract" "$BUILD_DIR/Libraries"
 LIBRARIES="$BUILD_DIR/Libraries"
 DOWNLOADS="$BUILD_DIR/downloads"
