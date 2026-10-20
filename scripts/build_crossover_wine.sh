@@ -613,13 +613,14 @@ run_step dependencies install_dependencies
 BISON_PREFIX=$("$BREW" --prefix bison)
 FLEX_PREFIX=$("$BREW" --prefix flex)
 GETTEXT_PREFIX=$("$BREW" --prefix gettext)
-export PATH="$TOOLCHAIN/bin:$BISON_PREFIX/bin:$FLEX_PREFIX/bin:$GETTEXT_PREFIX/bin:$BREW_PREFIX/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+# llvm-mingw goes last: it has its own "clang", which must not replace Apple's for the Unix side.
+export PATH="$BISON_PREFIX/bin:$FLEX_PREFIX/bin:$GETTEXT_PREFIX/bin:$BREW_PREFIX/bin:/usr/bin:/bin:/usr/sbin:/sbin:$TOOLCHAIN/bin"
 export PKG_CONFIG="$BREW_PREFIX/bin/pkg-config"
 export PKG_CONFIG_PATH="$BREW_PREFIX/lib/pkgconfig:$BREW_PREFIX/share/pkgconfig"
 unset PKG_CONFIG_LIBDIR CPATH LIBRARY_PATH DYLD_LIBRARY_PATH DYLD_FALLBACK_LIBRARY_PATH
 export MACOSX_DEPLOYMENT_TARGET="14.0"
-export CC="clang"
-export CXX="clang++"
+export CC="/usr/bin/clang"
+export CXX="/usr/bin/clang++"
 export CFLAGS="-O2 -Wno-deprecated-declarations -Wno-format -Wno-incompatible-function-pointer-types"
 export CROSSCFLAGS="-O2 -Wno-error=incompatible-pointer-types -Wno-error=int-conversion"
 LDFLAGS="-Wl,-headerpad_max_install_names"
