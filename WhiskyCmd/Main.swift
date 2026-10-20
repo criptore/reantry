@@ -57,7 +57,7 @@ extension Whisky {
             for bottle in bottles {
                 table.addRow(values: [bottle.settings.name,
                                       bottle.settings.windowsVersion.pretty(),
-                                      bottle.url.prettyPath()])
+                                      CLI.displayPath(bottle.url)])
             }
 
             print(table.render())

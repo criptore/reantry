@@ -93,6 +93,14 @@ enum CLI {
         return .failure
     }
 
+    /// The real path of a URL, with the home directory shortened to `~`.
+    static func displayPath(_ url: URL) -> String {
+        let path = url.path(percentEncoded: false)
+        let home = NSHomeDirectory()
+        guard path == home || path.hasPrefix(home + "/") else { return path }
+        return "~" + path.dropFirst(home.count)
+    }
+
     /// Parses a Windows version such as `win10`. `winxp` is accepted for `winxp64`.
     static func windowsVersion(_ name: String) throws -> WinVersion {
         let lowered = name.lowercased()
