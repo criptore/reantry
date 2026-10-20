@@ -36,6 +36,10 @@ enum SyncOption: String, CaseIterable, ExpressibleByArgument {
     }
 }
 
+private struct PrefixNotCreated: Error, CustomStringConvertible {
+    let description = "Wine did not initialize the prefix (no system.reg in the bottle)."
+}
+
 extension Whisky {
     struct Create: AsyncParsableCommand {
         static let configuration = CommandConfiguration(abstract: "Create a new bottle.")
@@ -51,7 +55,7 @@ extension Whisky {
 
             var bottlesList = BottleData()
             guard !bottlesList.loadBottles().contains(where: { $0.settings.name == name }) else {
-                throw ValidationError("A bottle called \"\(name)\" already exists.")
+                throw CLI.fail("A bottle called \"\(name)\" already exists.")
             }
 
             let bottleURL = BottleData.defaultBottleDir.appending(path: UUID().uuidString)
@@ -65,10 +69,15 @@ extension Whisky {
                 try await Wine.changeWinVersion(bottle: bottle, win: winVersion)
                 let wineVer = try await Wine.wineVersion()
                 bottle.settings.wineVersion = SemanticVersion(wineVer) ?? SemanticVersion(0, 0, 0)
+                // Wine can fail without reporting an error, only the prefix proves that it worked
+                let systemReg = bottleURL.appending(path: "system.reg")
+                guard FileManager.default.fileExists(atPath: systemReg.path(percentEncoded: false)) else {
+                    throw PrefixNotCreated()
+                }
                 bottlesList.paths.append(bottleURL)
             } catch {
                 try? FileManager.default.removeItem(at: bottleURL)
-                throw ValidationError("Failed to create the bottle: \(error)")
+                throw CLI.fail("Failed to create the bottle: \(error)")
             }
             Console.out("Created new bottle \"\(name)\" at \(bottleURL.path(percentEncoded: false)).")
         }
@@ -113,14 +122,19 @@ extension Whisky {
             // The outer optional tells whether --runtime was given, the inner one is `nil` for the default runtime
             let runtimeName: String?? = try runtime.map { try resolveRuntime($0) }
 
+            // Everything that can fail is checked before the first change, so nothing is applied halfway
+            if winVersion != nil {
+                try CLI.requireWine()
+            }
+
+            if let winVersion {
+                // The only change that can still fail on its own, so it goes first
+                try await Wine.changeWinVersion(bottle: bottle, win: winVersion)
+                bottle.settings.windowsVersion = winVersion
+            }
             applySimpleSettings(to: bottle)
             if let runtimeName {
                 bottle.settings.wineRuntime = runtimeName
-            }
-            if let winVersion {
-                try CLI.requireWine()
-                try await Wine.changeWinVersion(bottle: bottle, win: winVersion)
-                bottle.settings.windowsVersion = winVersion
             }
 
             printSettings(of: bottle)
@@ -142,7 +156,7 @@ extension Whisky {
             let installed = WhiskyWineInstaller.installedRuntimes()
             guard installed.contains(value) else {
                 let available = installed.isEmpty ? "none" : installed.joined(separator: ", ")
-                throw ValidationError("Runtime \"\(value)\" is not installed. Installed runtimes: \(available).")
+                throw CLI.fail("Runtime \"\(value)\" is not installed. Installed runtimes: \(available).")
             }
             return value
         }

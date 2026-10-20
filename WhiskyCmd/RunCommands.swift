@@ -46,24 +46,10 @@ extension Whisky {
             let bottle = try CLI.bottle(named: bottleName)
             try CLI.prepareGraphicsBackend(for: bottle)
 
-            var status: Int32 = 0
-            for await output in try Wine.runWineProcess(args: wineArgs, bottle: bottle) {
-                switch output {
-                case .started:
-                    break
-                case .message(let text):
-                    Console.out(text, terminator: "")
-                case .error(let text):
-                    Console.err(text, terminator: "")
-                case .terminated(let process):
-                    // Like a shell, report a crash as 128 plus the signal
-                    let signalled = process.terminationReason == .uncaughtSignal
-                    status = signalled ? 128 + process.terminationStatus : process.terminationStatus
-                }
-            }
+            let status = try await CLI.streamWine(args: wineArgs, bottle: bottle)
 
             if wait {
-                for await _ in try Wine.runWineserverProcess(args: ["-w"], bottle: bottle) { }
+                try await CLI.waitForWineserver(bottle: bottle)
             }
             if status != 0 {
                 throw ExitCode(status)
@@ -76,7 +62,9 @@ extension Whisky {
             abstract: "Run a program with Reantry.",
             discussion: """
             Without --wait, the program is started in Terminal. With --wait, it runs attached to this command \
-            with the bottle's graphics backend, and the command returns when it ends. Options go before the bottle.
+            with the bottle's graphics backend, and the exit status of the program becomes the exit status of \
+            this command. Options go before the bottle, everything after the program is passed to it.
+            Example: WhiskyCmd run --wait mybottle game.exe -windowed
             """
         )
 
@@ -85,7 +73,7 @@ extension Whisky {
 
         @Argument var bottleName: String
         @Argument var path: String
-        @Argument var args: [String] = []
+        @Argument(parsing: .remaining, help: "Arguments for the program.") var args: [String] = []
 
         mutating func run() async throws {
             let bottle = try CLI.bottle(named: bottleName)
@@ -93,16 +81,23 @@ extension Whisky {
             let program = Program(url: url, bottle: bottle)
 
             guard wait else {
-                program.runInTerminal()
+                // Returning before the script ran would end the process and the script with it
+                await program.runInTerminalAndWait()
                 return
             }
 
             try CLI.requireWine()
+            try CLI.prepareGraphicsBackend(for: bottle)
             let savedArguments = program.settings.arguments.split { $0.isWhitespace }.map(String.init)
-            try await Wine.runProgram(
-                at: url, args: savedArguments + args, bottle: bottle, environment: program.generateEnvironment()
+            let status = try await CLI.streamWine(
+                args: [url.path(percentEncoded: false)] + savedArguments + args,
+                bottle: bottle,
+                environment: program.generateEnvironment(),
+                directory: url.deletingLastPathComponent()
             )
-            Console.out("\(url.lastPathComponent) ended. Its output is in the log, see `WhiskyCmd logs --last`.")
+            if status != 0 {
+                throw ExitCode(status)
+            }
         }
     }
 
@@ -130,7 +125,7 @@ extension Whisky {
                 .filter { $0.pathExtension == "log" }
                 .max { modified($0) < modified($1) }
             guard let newest else {
-                throw ValidationError("No log in \(folder.path(percentEncoded: false)).")
+                throw CLI.fail("No log in \(folder.path(percentEncoded: false)).")
             }
 
             Console.out(newest.path(percentEncoded: false))

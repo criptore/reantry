@@ -26,6 +26,7 @@ import ArgumentParser
 @main
 struct Whisky: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
+        commandName: "WhiskyCmd",
         abstract: "A CLI interface for Reantry.",
         subcommands: [List.self,
                       Create.self,
@@ -98,7 +99,7 @@ extension Whisky {
                     print(error)
                 }
             } else {
-                throw ValidationError("No bottle called \"\(name)\" found.")
+                throw CLI.fail("No bottle called \"\(name)\" found.")
             }
         }
     }
@@ -118,7 +119,7 @@ extension Whisky {
                 bottlesList.paths.removeAll(where: { $0 == bottleToRemove.url })
                 print("Removed \"\(name)\".")
             } else {
-                throw ValidationError("No bottle called \"\(name)\" found.")
+                throw CLI.fail("No bottle called \"\(name)\" found.")
             }
         }
     }
@@ -133,7 +134,7 @@ extension Whisky {
             let bottles = bottlesList.loadBottles()
 
             guard let bottle = bottles.first(where: { $0.settings.name == bottleName }) else {
-                throw ValidationError("A bottle with that name doesn't exist.")
+                throw CLI.fail("No bottle called \"\(bottleName)\" found.")
             }
 
             let envCmd = Wine.generateTerminalEnvironmentCommand(bottle: bottle)

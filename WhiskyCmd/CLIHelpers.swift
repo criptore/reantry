@@ -86,6 +86,13 @@ enum HUDOption: String, CaseIterable, ExpressibleByArgument {
 }
 
 enum CLI {
+    /// Reports a runtime failure on stderr. Throw the result to exit with status 1, without the usage text
+    /// that `ValidationError` prints.
+    static func fail(_ message: String) -> ExitCode {
+        Console.err("Error: \(message)")
+        return .failure
+    }
+
     /// Parses a Windows version such as `win10`. `winxp` is accepted for `winxp64`.
     static func windowsVersion(_ name: String) throws -> WinVersion {
         let lowered = name.lowercased()
@@ -100,7 +107,7 @@ enum CLI {
     static func bottle(named name: String) throws -> Bottle {
         var bottlesList = BottleData()
         guard let bottle = bottlesList.loadBottles().first(where: { $0.settings.name == name }) else {
-            throw ValidationError("No bottle called \"\(name)\" found.")
+            throw fail("No bottle called \"\(name)\" found.")
         }
         return bottle
     }
@@ -108,7 +115,7 @@ enum CLI {
     /// Fails with a hint when Wine is not installed.
     static func requireWine() throws {
         guard WhiskyWineInstaller.isWhiskyWineInstalled() else {
-            throw ValidationError("Wine is not installed. Run `WhiskyCmd wine install` first.")
+            throw fail("Wine is not installed. Run `WhiskyCmd wine install` first.")
         }
     }
 
@@ -121,6 +128,49 @@ enum CLI {
             try Wine.enableDXVK(bottle: bottle)
         case .wineD3D:
             try Wine.enableWineD3D(bottle: bottle)
+        }
+    }
+
+    /// Runs wine in the bottle, streaming its output, and returns its exit status.
+    /// A crash is reported as 128 plus the signal, like a shell does.
+    static func streamWine(
+        args: [String], bottle: Bottle, environment: [String: String] = [:], directory: URL? = nil
+    ) async throws -> Int32 {
+        var status: Int32 = 0
+        for await output in try Wine.runWineProcess(
+            args: args, bottle: bottle, environment: environment, directory: directory
+        ) {
+            switch output {
+            case .started:
+                break
+            case .message(let text):
+                Console.out(text, terminator: "")
+            case .error(let text):
+                Console.err(text, terminator: "")
+            case .terminated(let process):
+                let signalled = process.terminationReason == .uncaughtSignal
+                status = signalled ? 128 + process.terminationStatus : process.terminationStatus
+            }
+        }
+        return status
+    }
+
+    /// Waits for every process of the bottle to end (`wineserver -w`).
+    /// `Wine.runWineserverProcess` would start a log of its own, which would hide wine's log from `logs --last`.
+    static func waitForWineserver(bottle: Bottle) async throws {
+        let process = Process()
+        process.executableURL = WhiskyWineInstaller.binFolder(for: bottle.settings.wineRuntime)
+            .appending(path: "wineserver")
+        process.arguments = ["-w"]
+        process.environment = ["WINEPREFIX": bottle.url.path(percentEncoded: false)]
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            process.terminationHandler = { _ in continuation.resume() }
+            do {
+                try process.run()
+            } catch {
+                process.terminationHandler = nil
+                continuation.resume(throwing: error)
+            }
         }
     }
 }
