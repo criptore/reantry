@@ -32,6 +32,10 @@ jobs:
           key: spm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
           restore-keys: spm-${{ runner.os }}-
 
+      # The Xcode project runs SwiftLint in a build phase and fails when it is missing.
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
       - name: Build
         run: |
           set -o pipefail
