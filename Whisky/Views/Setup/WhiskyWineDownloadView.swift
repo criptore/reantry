@@ -114,7 +114,7 @@ struct WhiskyWineDownloadView: View {
     }
 
     /// Moves a file that URLSession is about to delete to a location owned by the app.
-    private static func keepDownloadedFile(_ downloadedURL: URL) -> URL? {
+    nonisolated private static func keepDownloadedFile(_ downloadedURL: URL) -> URL? {
         let destination = FileManager.default.temporaryDirectory
             .appending(path: UUID().uuidString)
             .appendingPathExtension(downloadedURL.pathExtension)
