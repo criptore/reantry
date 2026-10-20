@@ -8,10 +8,8 @@
   [![Wine](https://img.shields.io/badge/Wine-Staging%2011.2-purple)](https://github.com/Gcenx/macOS_Wine_builds)
   [![License](https://img.shields.io/badge/License-GPL--3.0-orange)](LICENSE)
 
-  Forked from [Whisky-App/Whisky](https://github.com/Whisky-App/Whisky) (archived May 2025)
+  Fork of [Moonshine](https://github.com/ybmeng/moonshine), itself a fork of [Whisky-App/Whisky](https://github.com/Whisky-App/Whisky) (archived May 2025)
 </div>
-
-> ***DISCLOSURE: Built with Claude Code, not thoroughly tested.***
 
 ---
 
@@ -36,12 +34,13 @@ Moonshine is a maintained fork of Whisky, a native SwiftUI wrapper for Wine on m
 
 ### Method 1: Install from DMG (recommended)
 
-1. Download `Moonshine.dmg` from the [latest release](https://github.com/ybmeng/moonshine/releases/latest)
+1. Download `Moonshine.dmg` from the [latest release](https://github.com/criptore/reantry/releases/latest)
 2. Open the DMG and drag **Moonshine.app** to **Applications**
 3. Launch the app — the setup wizard will automatically:
-   - Download [Wine Staging 11.2](https://github.com/Gcenx/macOS_Wine_builds/releases/tag/11.2) from Gcenx
+   - Download the Wine libraries from the [`libraries` release](https://github.com/criptore/reantry/releases/tag/libraries)
+     (or [Wine Staging 11.2](https://github.com/Gcenx/macOS_Wine_builds/releases/tag/11.2) from Gcenx if that release is not published yet)
    - Extract and install Wine into the correct directory structure
-   - Apply the OpenGL 3.2+ patch to `winemac.so`
+   - Apply the OpenGL 3.2+ patch to `winemac.so` (Gcenx build only)
 4. Create a bottle and start running Windows programs
 
 No manual Wine installation, no terminal commands, no patching required.
@@ -51,7 +50,7 @@ No manual Wine installation, no terminal commands, no patching required.
 One command does everything — clones the repo, installs dependencies, builds the app, and launches it:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ybmeng/moonshine/main/scripts/build_from_source.sh | bash
+curl -fsSL https://raw.githubusercontent.com/criptore/reantry/main/scripts/build_from_source.sh | bash
 ```
 
 Or if you've already cloned the repo:
@@ -68,7 +67,7 @@ The script will:
 5. Copy `Moonshine.app` to `/Applications`
 6. Launch the app
 
-On first launch, the setup wizard auto-downloads Wine Staging 11.2 and applies the OpenGL patch — same as Method 1.
+On first launch, the setup wizard downloads and installs Wine — same as Method 1.
 
 ### Build a DMG
 
@@ -79,6 +78,14 @@ To create a distributable DMG locally:
 ```
 
 This builds a Release configuration, stages the app with an Applications symlink, and outputs `Moonshine.dmg` in the project root.
+
+### Homebrew
+
+There is no Homebrew cask for this fork yet. `brew install --cask whisky` installs the original, unmaintained Whisky.
+
+### Publishing releases
+
+See [docs/Releasing.md](docs/Releasing.md) for the Wine libraries release, the Sparkle signing key and the update feed.
 
 ### Logs
 
