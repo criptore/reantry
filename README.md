@@ -1,26 +1,29 @@
 <div align="center">
 
-  # Moonshine 🌙
-  *Whisky's rebellious offspring — Wine for macOS, uncut*
+  # Reantry
+  *Wine for macOS, built for games*
 
   [![macOS](https://img.shields.io/badge/macOS-14.0%2B-blue)](https://www.apple.com/macos/)
   [![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-M1%2FM2%2FM3%2FM4-green)](https://support.apple.com/en-us/116943)
-  [![Wine](https://img.shields.io/badge/Wine-Staging%2011.18-purple)](https://github.com/Gcenx/macOS_Wine_builds)
+  [![Wine](https://img.shields.io/badge/Wine-CrossOver%20%2B%20Staging-purple)](https://github.com/criptore/reantry)
   [![License](https://img.shields.io/badge/License-GPL--3.0-orange)](LICENSE)
 
-  Fork of [Moonshine](https://github.com/ybmeng/moonshine), itself a fork of [Whisky-App/Whisky](https://github.com/Whisky-App/Whisky) (archived May 2025)
+  A maintained fork of [Moonshine](https://github.com/ybmeng/moonshine), itself a fork of [Whisky-App/Whisky](https://github.com/Whisky-App/Whisky) (archived May 2025)
 </div>
 
 ---
 
-Moonshine is a maintained fork of Whisky, a native SwiftUI wrapper for Wine on macOS. Run Windows games and apps on your Mac with no technical knowledge required — create bottles, configure settings, and launch programs through a clean GUI.
+Reantry is a native SwiftUI wrapper for Wine on macOS. Run Windows games and apps on your Mac with no technical knowledge required — create bottles, configure settings, and launch programs through a clean GUI or from the terminal.
 
 ## What's different from Whisky?
 
-- **Wine Staging 11.2** (Feb 2026) — replaces the outdated CrossOver 22.1.1 (2023) bundled with the original
-- **Crash logs that actually work** — Wine output is captured in full, including page faults, DLL load failures, and exit codes
+- **CrossOver-based Wine engine** — built from the CodeWeavers CrossOver sources (wow64), with D3DMetal, DXVK and WineD3D backends selectable per bottle
+- **Per-bottle runtime** — choose between the CrossOver, Game Porting Toolkit and Wine Staging runtimes from `Libraries/Runtimes/<name>`
+- **Command-line control** — `WhiskyCmd` creates bottles, changes settings, runs Wine and streams logs, so builds can be tested without the GUI
+- **Crash logs that actually work** — Wine output is captured in full, including page faults, DLL load failures and exit codes
 - **OpenGL 3.2+ support** — binary patch to Wine's macOS driver fixes context creation for SDL3 and other modern engines
-- **macOS 26 tested** — verified on the latest macOS with Apple Silicon
+- **macOS 27 tested** — verified on the latest macOS with Apple Silicon
+- **Self-hosted libraries** — Wine libraries are served from this repository's GitHub Releases, with a Gcenx Wine Staging fallback
 
 ## System Requirements
 
@@ -34,8 +37,8 @@ Moonshine is a maintained fork of Whisky, a native SwiftUI wrapper for Wine on m
 
 ### Method 1: Install from DMG (recommended)
 
-1. Download `Moonshine.dmg` from the [latest release](https://github.com/criptore/reantry/releases/latest)
-2. Open the DMG and drag **Moonshine.app** to **Applications**
+1. Download `Reantry.dmg` from the [latest release](https://github.com/criptore/reantry/releases/latest)
+2. Open the DMG and drag **Reantry.app** to **Applications**
 3. Launch the app — the setup wizard will automatically:
    - Download the Wine libraries from the [`libraries` release](https://github.com/criptore/reantry/releases/tag/libraries)
      (or [Wine Staging 11.18](https://github.com/Gcenx/macOS_Wine_builds/releases/tag/11.18) from Gcenx if that release is not published yet)
@@ -63,7 +66,7 @@ The script will:
 2. Install swiftlint via Homebrew
 3. Clone the repo (if not already in it)
 4. Build the app with `xcodebuild` (Release, ad-hoc signed)
-5. Copy `Moonshine.app` to `/Applications`
+5. Copy `Reantry.app` to `/Applications`
 6. Launch the app
 
 On first launch, the setup wizard downloads and installs Wine — same as Method 1.
@@ -76,7 +79,7 @@ To create a distributable DMG locally:
 ./scripts/build_dmg.sh
 ```
 
-This builds a Release configuration, stages the app with an Applications symlink, and outputs `Moonshine.dmg` in the project root.
+This builds a Release configuration, stages the app with an Applications symlink, and outputs `Reantry.dmg` in the project root.
 
 ### Homebrew
 
@@ -95,6 +98,38 @@ Wine logs are written to:
 ```
 
 Each run creates a timestamped log with full Wine output, including crash details and DLL load diagnostics.
+
+## Graphics backends
+
+Each bottle can use one of three backends, selectable with `config <bottle> --backend`:
+
+| Backend | Description |
+|---------|-------------|
+| `d3dmetal` | Apple's D3DMetal (Metal). Best for most DirectX 11/12 games |
+| `dxvk` | DXVK (Vulkan → Metal via MoltenVK). Requires `Libraries/DXVK/x64/dxgi.dll` |
+| `wined3d` | Wine's own Direct3D (OpenGL). Fallback backend |
+
+## Wine runtimes
+
+Wine is installed under `~/Library/Application Support/com.isaacmarovitz.Whisky/Libraries/Runtimes/<name>`. A bottle can pin a runtime with `config <bottle> --runtime <name>|default`. Available runtimes depend on what is installed; the default is the one shipped with the app.
+
+To build a runtime from source:
+
+```bash
+# CrossOver-based Wine (wow64, recommended)
+./scripts/build_crossover_wine.sh
+
+# Game Porting Toolkit 3.0-3
+./scripts/build_libraries.sh --engine gptk
+
+# Wine Staging 11.18
+./scripts/build_libraries.sh --engine staging
+
+# Package a locally built CrossOver Wine
+./scripts/build_libraries.sh --engine crossover --wine-dir <output folder> [--gptk <mounted GPTK DMG>]
+```
+
+See [docs/Releasing.md](docs/Releasing.md) for prerequisites and build times.
 
 ## Command line
 
@@ -141,7 +176,7 @@ second share one log file, so `logs --last` can show both.
 
 ### v2.7.0-fork — DMG distribution with auto-download Wine setup
 
-**Problem:** Setting up Moonshine required 7 manual steps — clone the repo, install swiftlint, build from source, download Wine Staging, extract it into the right directory, apply the OpenGL patch, and finally launch. Users needed developer tools and terminal knowledge just to get started.
+**Problem:** Setting up Reantry required 7 manual steps — clone the repo, install swiftlint, build from source, download Wine Staging, extract it into the right directory, apply the OpenGL patch, and finally launch. Users needed developer tools and terminal knowledge just to get started.
 
 **Solution:** One-step install via DMG. On first launch, the app automatically downloads Wine Staging 11.2, sets up the correct directory structure, and applies the OpenGL patch.
 
@@ -292,7 +327,7 @@ Wine runs as an x86_64 process via Rosetta 2 on Apple Silicon.
 
 ## Credits
 
-Moonshine builds on the work of many projects:
+Reantry builds on the work of many projects:
 
 - [Whisky](https://github.com/Whisky-App/Whisky) by Isaac Marovitz — the original macOS Wine GUI
 - [Wine](https://www.winehq.org/) and [Wine Staging](https://github.com/Gcenx/macOS_Wine_builds) — Windows compatibility layer
