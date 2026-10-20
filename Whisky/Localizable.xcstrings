@@ -5580,6 +5580,46 @@
         }
       }
     },
+    "config.graphicsBackend" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Graphics Backend"
+          }
+        }
+      }
+    },
+    "config.graphicsBackend.d3dMetal" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D3DMetal"
+          }
+        }
+      }
+    },
+    "config.graphicsBackend.dxvk" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DXVK"
+          }
+        }
+      }
+    },
+    "config.graphicsBackend.wineD3D" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WineD3D"
+          }
+        }
+      }
+    },
     "config.inspect" : {
       "localizations" : {
         "ar" : {

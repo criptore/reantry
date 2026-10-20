@@ -31,6 +31,28 @@ public class WhiskyWineInstaller {
     /// URL to the installed `wine` `bin` directory
     public static let binFolder: URL = libraryFolder.appending(path: "Wine").appending(path: "bin")
 
+    /// Folder holding additional Wine runtimes, one subfolder per runtime with its own `bin`, `lib` and `share`
+    public static let runtimesFolder: URL = libraryFolder.appending(path: "Runtimes")
+
+    /// Names of the additional Wine runtimes that are installed
+    public static func installedRuntimes() -> [String] {
+        let runtimes = (try? FileManager.default.contentsOfDirectory(
+            at: runtimesFolder, includingPropertiesForKeys: nil
+        )) ?? []
+        return runtimes
+            .filter { FileManager.default.fileExists(atPath: $0.appending(path: "bin").path(percentEncoded: false)) }
+            .map { $0.lastPathComponent }
+            .sorted()
+    }
+
+    /// The `bin` directory of the given runtime, or of the default runtime if it is `nil` or not installed
+    public static func binFolder(for runtime: String?) -> URL {
+        guard let runtime else { return binFolder }
+        let folder = runtimesFolder.appending(path: runtime).appending(path: "bin")
+        guard FileManager.default.fileExists(atPath: folder.path(percentEncoded: false)) else { return binFolder }
+        return folder
+    }
+
     public static func isWhiskyWineInstalled() -> Bool {
         return whiskyWineVersion() != nil
     }
