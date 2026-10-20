@@ -89,12 +89,24 @@ public enum EnhancedSync: Codable, Equatable {
     case none, esync, msync
 }
 
+/// The Direct3D implementation used to run a bottle's programs
+public enum GraphicsBackend: String, Codable, CaseIterable, Equatable, Sendable {
+    /// Apple's D3DMetal from the Game Porting Toolkit, built into the Wine libraries
+    case d3dMetal
+    /// DXVK translating Direct3D to Vulkan, then MoltenVK to Metal
+    case dxvk
+    /// Wine's own Direct3D implementation on top of OpenGL
+    case wineD3D
+}
+
 public struct BottleWineConfig: Codable, Equatable {
     static let defaultWineVersion = SemanticVersion(7, 7, 0)
     var wineVersion: SemanticVersion = Self.defaultWineVersion
     var windowsVersion: WinVersion = .win10
     var enhancedSync: EnhancedSync = .msync
     var avxEnabled: Bool = false
+    var graphicsBackend: GraphicsBackend?
+    var wineRuntime: String?
 
     public init() {}
 
@@ -105,6 +117,9 @@ public struct BottleWineConfig: Codable, Equatable {
         self.windowsVersion = try container.decodeIfPresent(WinVersion.self, forKey: .windowsVersion) ?? .win10
         self.enhancedSync = try container.decodeIfPresent(EnhancedSync.self, forKey: .enhancedSync) ?? .msync
         self.avxEnabled = try container.decodeIfPresent(Bool.self, forKey: .avxEnabled) ?? false
+        // An unknown backend, written by a newer version, falls back to the default instead of failing the decode
+        self.graphicsBackend = try? container.decodeIfPresent(GraphicsBackend.self, forKey: .graphicsBackend)
+        self.wineRuntime = try container.decodeIfPresent(String.self, forKey: .wineRuntime)
     }
     // swiftlint:enable line_length
 }
@@ -193,6 +208,24 @@ public struct BottleSettings: Codable, Equatable {
         set { wineConfig.avxEnabled = newValue }
     }
 
+    /// The Wine runtime used by this bottle, installed in `Libraries/Runtimes/<name>`.
+    /// `nil` uses the default runtime in `Libraries/Wine`.
+    public var wineRuntime: String? {
+        get { return wineConfig.wineRuntime }
+        set { wineConfig.wineRuntime = newValue }
+    }
+
+    /// The Direct3D implementation used by this bottle.
+    /// Bottles created before this setting existed use DXVK if it was enabled, D3DMetal otherwise.
+    public var graphicsBackend: GraphicsBackend {
+        get { return wineConfig.graphicsBackend ?? (dxvkConfig.dxvk ? .dxvk : .d3dMetal) }
+        set {
+            wineConfig.graphicsBackend = newValue
+            // Kept in sync so older versions of the app read the same choice
+            dxvkConfig.dxvk = newValue == .dxvk
+        }
+    }
+
     /// The pinned programs on this bottle
     public var pins: [PinnedProgram] {
         get { return info.pins }
@@ -226,8 +259,14 @@ public struct BottleSettings: Codable, Equatable {
     }
 
     public var dxvk: Bool {
-        get { return dxvkConfig.dxvk }
-        set { dxvkConfig.dxvk = newValue }
+        get { return graphicsBackend == .dxvk }
+        set {
+            if newValue {
+                graphicsBackend = .dxvk
+            } else if graphicsBackend == .dxvk {
+                graphicsBackend = .d3dMetal
+            }
+        }
     }
 
     public var dxvkAsync: Bool {
@@ -277,10 +316,11 @@ public struct BottleSettings: Codable, Equatable {
         try data.write(to: metadataUrl)
     }
 
+    // Environment variables derived from the bottle settings. `WINEDLLOVERRIDES` for the graphics
+    // backend is set by `Wine`, which knows which libraries are installed.
     // swiftlint:disable:next cyclomatic_complexity
     public func environmentVariables(wineEnv: inout [String: String]) {
         if dxvk {
-            wineEnv.updateValue("dxgi,d3d9,d3d10core,d3d11=n,b", forKey: "WINEDLLOVERRIDES")
             switch dxvkHud {
             case .full:
                 wineEnv.updateValue("full", forKey: "DXVK_HUD")

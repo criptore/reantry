@@ -46,8 +46,14 @@ public enum AppDistribution {
         string: "https://github.com/\(repository)/releases/download/\(librariesTag)/WhiskyWineVersion.plist"
     )
 
+    /// Version of the upstream Wine Staging build used when `librariesURL` is not available.
+    /// Gcenx only keeps recent releases, so this must point to a tag that still exists.
+    public static let fallbackWineVersion = (major: 11, minor: 18)
+
     /// Upstream Wine Staging build used when `librariesURL` is not available.
     public static let fallbackLibrariesURL = URL(
-        string: "https://github.com/Gcenx/macOS_Wine_builds/releases/download/11.2/wine-staging-11.2-osx64.tar.xz"
+        string: "https://github.com/Gcenx/macOS_Wine_builds/releases/download/"
+            + "\(fallbackWineVersion.major).\(fallbackWineVersion.minor)/"
+            + "wine-staging-\(fallbackWineVersion.major).\(fallbackWineVersion.minor)-osx64.tar.xz"
     )
 }

@@ -77,8 +77,12 @@ extension FileHandle {
         if let version = WhiskyWineInstaller.whiskyWineVersion() {
             header += "WhiskyWine Version: \(version.major).\(version.minor).\(version.patch)\n"
         }
+        if let runtime = bottle.settings.wineRuntime {
+            header += "Wine Runtime: \(runtime)\n"
+        }
         header += "Windows Version: \(bottle.settings.windowsVersion)\n"
-        header += "Enhanced Sync: \(bottle.settings.enhancedSync)\n\n"
+        header += "Enhanced Sync: \(bottle.settings.enhancedSync)\n"
+        header += "Graphics Backend: \(bottle.settings.graphicsBackend.rawValue)\n\n"
 
         header += "Metal HUD: \(bottle.settings.metalHud)\n"
         header += "Metal Trace: \(bottle.settings.metalTrace)\n\n"

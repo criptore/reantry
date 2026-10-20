@@ -20,12 +20,8 @@ import Foundation
 import os.log
 
 public class Wine {
-    /// URL to the installed `DXVK` folder
-    private static let dxvkFolder: URL = WhiskyWineInstaller.libraryFolder.appending(path: "DXVK")
     /// Path to the `wine` binary
     public static let wineBinary: URL = WhiskyWineInstaller.binFolder.appending(path: "wine")
-    /// Parth to the `wineserver` binary
-    private static let wineserverBinary: URL = WhiskyWineInstaller.binFolder.appending(path: "wineserver")
 
     /// Run a process on a executable file given by the `executableURL`
     private static func runProcess(
@@ -47,10 +43,10 @@ public class Wine {
     /// Run a `wine` process with the given arguments and environment variables returning a stream of output
     private static func runWineProcess(
         name: String? = nil, args: [String], environment: [String: String] = [:],
-        fileHandle: FileHandle?, directory: URL? = nil
+        fileHandle: FileHandle?, directory: URL? = nil, binFolder: URL = WhiskyWineInstaller.binFolder
     ) throws -> AsyncStream<ProcessOutput> {
         return try runProcess(
-            name: name, args: args, environment: environment, executableURL: wineBinary,
+            name: name, args: args, environment: environment, executableURL: binFolder.appending(path: "wine"),
             directory: directory, fileHandle: fileHandle
         )
     }
@@ -58,10 +54,10 @@ public class Wine {
     /// Run a `wineserver` process with the given arguments and environment variables returning a stream of output
     private static func runWineserverProcess(
         name: String? = nil, args: [String], environment: [String: String] = [:],
-        fileHandle: FileHandle?
+        fileHandle: FileHandle?, binFolder: URL = WhiskyWineInstaller.binFolder
     ) throws -> AsyncStream<ProcessOutput> {
         return try runProcess(
-            name: name, args: args, environment: environment, executableURL: wineserverBinary,
+            name: name, args: args, environment: environment, executableURL: binFolder.appending(path: "wineserver"),
             fileHandle: fileHandle
         )
     }
@@ -78,7 +74,8 @@ public class Wine {
         return try runWineProcess(
             name: name, args: args,
             environment: constructWineEnvironment(for: bottle, environment: environment),
-            fileHandle: fileHandle, directory: directory
+            fileHandle: fileHandle, directory: directory,
+            binFolder: WhiskyWineInstaller.binFolder(for: bottle.settings.wineRuntime)
         )
     }
 
@@ -93,7 +90,8 @@ public class Wine {
         return try runWineserverProcess(
             name: name, args: args,
             environment: constructWineServerEnvironment(for: bottle, environment: environment),
-            fileHandle: fileHandle
+            fileHandle: fileHandle,
+            binFolder: WhiskyWineInstaller.binFolder(for: bottle.settings.wineRuntime)
         )
     }
 
@@ -101,8 +99,13 @@ public class Wine {
     public static func runProgram(
         at url: URL, args: [String] = [], bottle: Bottle, environment: [String: String] = [:]
     ) async throws {
-        if bottle.settings.dxvk {
+        switch bottle.settings.graphicsBackend {
+        case .d3dMetal:
+            break
+        case .dxvk:
             try enableDXVK(bottle: bottle)
+        case .wineD3D:
+            try enableWineD3D(bottle: bottle)
         }
 
         for await _ in try Self.runWineProcess(
@@ -116,7 +119,8 @@ public class Wine {
     public static func generateRunCommand(
         at url: URL, bottle: Bottle, args: String, environment: [String: String]
     ) -> String {
-        var wineCmd = "cd \(url.deletingLastPathComponent().esc) && \(wineBinary.esc) \(url.esc) \(args)"
+        let wine = WhiskyWineInstaller.binFolder(for: bottle.settings.wineRuntime).appending(path: "wine")
+        var wineCmd = "cd \(url.deletingLastPathComponent().esc) && \(wine.esc) \(url.esc) \(args)"
         let env = constructWineEnvironment(for: bottle, environment: environment)
         for environment in env {
             wineCmd = "\(environment.key)=\"\(environment.value)\" " + wineCmd
@@ -127,7 +131,7 @@ public class Wine {
 
     public static func generateTerminalEnvironmentCommand(bottle: Bottle) -> String {
         var cmd = """
-        export PATH=\"\(WhiskyWineInstaller.binFolder.path):$PATH\"
+        export PATH=\"\(WhiskyWineInstaller.binFolder(for: bottle.settings.wineRuntime).path):$PATH\"
         export WINE=\"wine\"
         alias winecfg=\"wine winecfg\"
         alias msiexec=\"wine msiexec\"
@@ -181,7 +185,10 @@ public class Wine {
             environment = constructWineEnvironment(for: bottle, environment: environment)
         }
 
-        for await output in try runWineProcess(args: args, environment: environment, fileHandle: fileHandle) {
+        let binFolder = WhiskyWineInstaller.binFolder(for: bottle?.settings.wineRuntime)
+        for await output in try runWineProcess(
+            args: args, environment: environment, fileHandle: fileHandle, binFolder: binFolder
+        ) {
             switch output {
             case .started, .terminated:
                 break
@@ -215,17 +222,6 @@ public class Wine {
         }
     }
 
-    public static func enableDXVK(bottle: Bottle) throws {
-        try FileManager.default.replaceDLLs(
-            in: bottle.url.appending(path: "drive_c").appending(path: "windows").appending(path: "system32"),
-            withContentsIn: Wine.dxvkFolder.appending(path: "x64")
-        )
-        try FileManager.default.replaceDLLs(
-            in: bottle.url.appending(path: "drive_c").appending(path: "windows").appending(path: "syswow64"),
-            withContentsIn: Wine.dxvkFolder.appending(path: "x32")
-        )
-    }
-
     /// Construct an environment merging the bottle values with the given values
     private static func constructWineEnvironment(
         for bottle: Bottle, environment: [String: String] = [:]
@@ -235,6 +231,9 @@ public class Wine {
             "WINEDEBUG": "fixme-all,err+all,warn+module",
             "GST_DEBUG": "1"
         ]
+        if let overrides = graphicsDLLOverrides(for: bottle.settings.graphicsBackend) {
+            result["WINEDLLOVERRIDES"] = overrides
+        }
         bottle.settings.environmentVariables(wineEnv: &result)
         guard !environment.isEmpty else { return result }
         result.merge(environment, uniquingKeysWith: { $1 })

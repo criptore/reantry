@@ -32,6 +32,30 @@ public class WhiskyWineInstaller {
     /// URL to the installed `wine` `bin` directory
     public static let binFolder: URL = libraryFolder.appending(path: "Wine").appending(path: "bin")
 
+    /// Folder holding additional Wine runtimes, one subfolder per runtime with its own `bin`, `lib` and `share`
+    public static let runtimesFolder: URL = libraryFolder.appending(path: "Runtimes")
+
+    /// Names of the additional Wine runtimes that are installed
+    public static func installedRuntimes() -> [String] {
+        let runtimes = (try? FileManager.default.contentsOfDirectory(
+            at: runtimesFolder, includingPropertiesForKeys: nil
+        )) ?? []
+        return runtimes
+            .filter { FileManager.default.fileExists(atPath: $0.appending(path: "bin").path(percentEncoded: false)) }
+            .map { $0.lastPathComponent }
+            .sorted()
+    }
+
+    /// The `bin` directory of the given runtime, or of the default runtime if it is `nil` or not installed
+    public static func binFolder(for runtime: String?) -> URL {
+        guard let runtime, !runtime.isEmpty, !runtime.contains("/"), runtime != "..", runtime != "." else {
+            return binFolder
+        }
+        let folder = runtimesFolder.appending(path: runtime).appending(path: "bin")
+        guard FileManager.default.fileExists(atPath: folder.path(percentEncoded: false)) else { return binFolder }
+        return folder
+    }
+
     public static func isWhiskyWineInstalled() -> Bool {
         return whiskyWineVersion() != nil
     }
@@ -73,59 +97,16 @@ public class WhiskyWineInstaller {
                 let versionPlist = libraryFolder
                     .appending(path: "WhiskyWineVersion")
                     .appendingPathExtension("plist")
-                let versionInfo = WhiskyWineVersion(version: SemanticVersion(11, 2, 0))
+                let fallback = AppDistribution.fallbackWineVersion
+                let versionInfo = WhiskyWineVersion(version: SemanticVersion(fallback.major, fallback.minor, 0))
                 let encoder = PropertyListEncoder()
                 encoder.outputFormat = .xml
                 let data = try encoder.encode(versionInfo)
                 try data.write(to: versionPlist)
-
-                // The patch offset only matches the Gcenx Wine Staging 11.2 winemac.so
-                applyOpenGLPatch()
             }
         } catch {
             Logger.wineKit.error("Failed to install WhiskyWine: \(error)")
             print("Failed to install WhiskyWine: \(error)")
-        }
-    }
-
-    /// Patches winemac.so to enable OpenGL 3.2+ context creation for SDL3-based games.
-    /// Changes byte at offset 0x329fb from 0x74 (JE) to 0xEB (JMP).
-    private static func applyOpenGLPatch() {
-        let winemacPath = libraryFolder
-            .appending(path: "Wine")
-            .appending(path: "lib")
-            .appending(path: "wine")
-            .appending(path: "x86_64-unix")
-            .appending(path: "winemac.so")
-
-        guard FileManager.default.fileExists(atPath: winemacPath.path) else {
-            print("winemac.so not found, skipping OpenGL patch")
-            return
-        }
-
-        do {
-            let fileHandle = try FileHandle(forUpdating: winemacPath)
-            defer { fileHandle.closeFile() }
-
-            let patchOffset: UInt64 = 0x329fb
-            fileHandle.seek(toFileOffset: patchOffset)
-
-            guard let currentByte = fileHandle.readData(ofLength: 1).first else {
-                print("Failed to read byte at patch offset")
-                return
-            }
-
-            if currentByte == 0x74 {
-                fileHandle.seek(toFileOffset: patchOffset)
-                fileHandle.write(Data([0xEB]))
-                print("OpenGL patch applied successfully")
-            } else if currentByte == 0xEB {
-                print("OpenGL patch already applied")
-            } else {
-                print("Unexpected byte 0x\(String(currentByte, radix: 16)) at patch offset, skipping patch")
-            }
-        } catch {
-            print("Failed to apply OpenGL patch: \(error)")
         }
     }
 

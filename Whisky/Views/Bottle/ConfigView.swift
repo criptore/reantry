@@ -116,11 +116,13 @@ struct ConfigView: View {
                         }
                     }
                 }
+                Picker("config.graphicsBackend", selection: $bottle.settings.graphicsBackend) {
+                    Text("config.graphicsBackend.d3dMetal").tag(GraphicsBackend.d3dMetal)
+                    Text("config.graphicsBackend.dxvk").tag(GraphicsBackend.dxvk)
+                    Text("config.graphicsBackend.wineD3D").tag(GraphicsBackend.wineD3D)
+                }
             }
             Section("config.title.dxvk", isExpanded: $dxvkSectionExpanded) {
-                Toggle(isOn: $bottle.settings.dxvk) {
-                    Text("config.dxvk")
-                }
                 Toggle(isOn: $bottle.settings.dxvkAsync) {
                     Text("config.dxvk.async")
                 }
