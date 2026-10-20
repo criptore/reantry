@@ -44,8 +44,7 @@ Staging 11.2 build.
 Updates are signed with an EdDSA key. The public half lives in `SUPublicEDKey`
 in `Whisky/Info.plist`; the private half must never be committed.
 
-The key currently in `Info.plist` belongs to the original Whisky project, so no
-update can be published until it is replaced:
+To set up a new key (only needed if the current one is lost or rotated):
 
 1. Get the Sparkle tools. Either download `Sparkle-2.x.tar.xz` from
    https://github.com/sparkle-project/Sparkle/releases, or use the copy Xcode
