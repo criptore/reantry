@@ -162,6 +162,11 @@ public class WhiskyWineInstaller {
                 .appending(path: "WhiskyWineVersion")
                 .appendingPathExtension("plist")
 
+            // Not installed yet, nothing to report
+            guard FileManager.default.fileExists(atPath: versionPlist.path(percentEncoded: false)) else {
+                return nil
+            }
+
             let decoder = PropertyListDecoder()
             let data = try Data(contentsOf: versionPlist)
             let info = try decoder.decode(WhiskyWineVersion.self, from: data)
