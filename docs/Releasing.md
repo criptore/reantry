@@ -14,12 +14,13 @@ repository set in `AppDistribution.repository`
 ## Wine libraries
 
 `Libraries.tar.gz` is extracted into
-`~/Library/Application Support/<bundle id>/` and must contain:
+`~/Library/Application Support/<bundle id>/` and contains:
 
 ```
 Libraries/
-├── Wine/                    # bin/, lib/, share/
-├── DXVK/                    # x64/ and x32/ DLLs, copied into bottles when DXVK is enabled
+├── Wine/                    # bin/, lib/, share/ (D3DMetal merged into lib/ when built with --gptk)
+├── DXVK/                    # x64/ and x32/ DLLs, copied into bottles using the DXVK backend
+├── WineD3D/                 # Wine's Direct3D DLLs replaced by D3DMetal, for the WineD3D backend (--gptk only)
 ├── winetricks
 ├── verbs.txt
 └── WhiskyWineVersion.plist  # version dict: major, minor, patch, preRelease, build
@@ -27,17 +28,57 @@ Libraries/
 
 `WhiskyWineVersion.plist` is also uploaded next to the archive. The app compares
 it with the installed copy at launch and offers to reinstall when the published
-version is higher, so bump it every time the archive changes.
+version is higher, so it must increase every time the archive changes.
 
-Publish or replace the assets with:
+### Building
+
+`scripts/build_libraries.sh` assembles the archive on a Mac from:
+
+| Component | Source | Default |
+|-----------|--------|---------|
+| Wine | [Gcenx/macOS_Wine_builds](https://github.com/Gcenx/macOS_Wine_builds) | Wine Staging 11.18 |
+| MoltenVK | [KhronosGroup/MoltenVK](https://github.com/KhronosGroup/MoltenVK) | v1.4.2 |
+| DXVK | [Gcenx/DXVK-macOS](https://github.com/Gcenx/DXVK-macOS) | v1.10.3-20230507 (async) |
+| winetricks | [Winetricks/winetricks](https://github.com/Winetricks/winetricks) | 20260125 |
+| D3DMetal | Apple Game Porting Toolkit (optional) | — |
 
 ```bash
-gh release create libraries --title "Wine libraries" --notes "Wine libraries used by the app" || true
-gh release upload libraries Libraries.tar.gz WhiskyWineVersion.plist --clobber
+# Without D3DMetal
+./scripts/build_libraries.sh
+
+# With D3DMetal, from the mounted Game Porting Toolkit DMG
+./scripts/build_libraries.sh --gptk "/Volumes/Evaluation environment for Windows games 3.0"
+
+# Build and upload to the "libraries" release (needs `gh auth login`)
+./scripts/build_libraries.sh --gptk "/Volumes/..." --publish
 ```
 
-Until this release exists, the setup wizard falls back to the Gcenx Wine
-Staging 11.2 build.
+Versions can be overridden with `WINE_VERSION`, `WINE_FLAVOR` (`staging` or
+`devel`), `DXVK_VERSION`, `MOLTENVK_VERSION` and `WINETRICKS_VERSION`. The
+output is written to `build/`, which is ignored by git.
+
+Until the `libraries` release exists, the setup wizard falls back to the
+Gcenx Wine Staging 11.2 build.
+
+### Before publishing a new archive
+
+Test it on a Mac first: point a local build at it by copying the extracted
+`Libraries` folder into `~/Library/Application Support/<bundle id>/`, then
+run a DirectX 11 game with each graphics backend.
+
+Known points to check:
+
+- **D3DMetal and upstream Wine.** D3DMetal was designed for CrossOver's Wine.
+  With the Gcenx upstream builds it may not load. If it does not, either
+  build Wine from the CrossOver sources
+  (https://www.codeweavers.com/crossover/source) and package it in
+  `Libraries/Wine` by hand, or ship without `--gptk` (the D3DMetal backend
+  then uses Wine's builtin Direct3D).
+- **D3DMetal licence.** Read the licence in the Game Porting Toolkit DMG
+  before redistributing its `redist` folder.
+- **OpenGL 3.2+ patch.** The installer only patches `winemac.so` for the Gcenx
+  11.2 fallback, since the byte offset is specific to that binary. Check
+  whether SDL3/OpenGL 3.2 games still need it on the new Wine version.
 
 ## Sparkle signing key
 
