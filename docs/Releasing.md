@@ -18,7 +18,7 @@ repository set in `AppDistribution.repository`
 
 ```
 Libraries/
-├── Wine/                    # bin/, lib/, share/ (bin/wine is a symlink to wine64 with the gptk engine)
+├── Wine/                    # bin/, lib/, share/ (with gptk, bin/wine and bin/wine-preloader are symlinks)
 ├── DXVK/                    # x64/ and x32/ DLLs, copied into bottles using the DXVK backend
 ├── WineD3D/                 # Wine's Direct3D DLLs replaced by D3DMetal, for the WineD3D backend (staging engine with --gptk only)
 ├── winetricks
@@ -32,13 +32,14 @@ version is higher, so it must increase every time the archive changes.
 
 ### Engines
 
-`scripts/build_libraries.sh` builds the archive with one of two Wine engines,
+`scripts/build_libraries.sh` builds the archive with one of three Wine engines,
 selected with `--engine`:
 
 | Engine | Source | Notes |
 |--------|--------|-------|
 | `gptk` (default) | [Gcenx/game-porting-toolkit](https://github.com/Gcenx/game-porting-toolkit) 3.0-3 | CrossOver based, D3DMetal included |
 | `staging` | [Gcenx/macOS_Wine_builds](https://github.com/Gcenx/macOS_Wine_builds) Wine Staging 11.18 | Upstream Wine, no D3DMetal unless merged with `--gptk` |
+| `sikarugir` | [Sikarugir-App/Engines](https://github.com/Sikarugir-App/Engines) `WS12WineSikarugir11.0_1` | Wine 11.0 (unified wow64) with macOS patches and DXMT's `winemetal.dll` |
 
 `gptk` is the default because it is CrossOver based and already includes
 D3DMetal (`lib/external/D3DMetal.framework`, `libd3dshared.dylib` and the
@@ -51,11 +52,31 @@ always runs `<Libraries/Wine/bin>/wine` (and Winetricks uses `WINE=wine`). The
 script therefore creates a relative symlink `bin/wine -> wine64`. Symlinks
 survive both `tar -czf` when building and `tar -xf` in `WhiskyWineInstaller`.
 
+When started as `wine`, the loader looks for `wine-preloader`, but the archive
+only ships `wine64-preloader`. Without it 32-bit support breaks: new prefixes
+get an empty `syswow64` and 32-bit programs fail. The script therefore also
+creates the relative symlink `bin/wine-preloader -> wine64-preloader`. Tested on
+a Mac: with the link `syswow64` gets 717 files and 32-bit `cmd.exe` runs.
+
+**GPTK 3.0-3 and Steam.** The Wine inside Game Porting Toolkit 3.0-3 reports
+`wine-7.7 (Game Porting Toolkit 1.1)`. It is too old for the current 64-bit
+Steam client, which crashes on a missing `DeleteFileTransactedW`. Use the
+`sikarugir` engine when Steam is needed.
+
 With `gptk` the script skips the MoltenVK replacement (MoltenVK is inside
 `lib/GStreamer.framework`) and rejects `--gptk`, since D3DMetal is already
 included. There is no `WineD3D` folder either, because the original wined3d
 DLLs are not in the archive: the WineD3D backend uses D3DMetal's builtin DLLs
-with this engine. DXVK, winetricks and `verbs.txt` are bundled by both engines.
+with this engine. DXVK, winetricks and `verbs.txt` are bundled by all engines.
+
+The `sikarugir` archive extracts to `wswine.bundle/{bin,lib,share,version,dxmt_extescape}`.
+`bin` has `wine` and `wineserver`, a unified wow64 Wine 11.0 with the macOS
+patches and DXMT's `winemetal.dll`. The script moves the whole bundle to
+`Libraries/Wine`, so `version` and `dxmt_extescape` stay next to `bin`. No
+symlinks are needed and MoltenVK is not replaced. `--gptk` is rejected, and
+there is no `WineD3D` folder. The engine version is set with `SIKARUGIR_ENGINE`
+(default `WS12WineSikarugir11.0_1`). The default engine stays `gptk` until the
+Mac test decides.
 
 ### Building
 
@@ -63,6 +84,7 @@ with this engine. DXVK, winetricks and `verbs.txt` are bundled by both engines.
 |-----------|--------|---------|
 | Wine (`gptk`) | [Gcenx/game-porting-toolkit](https://github.com/Gcenx/game-porting-toolkit) | Game Porting Toolkit 3.0-3 |
 | Wine (`staging`) | [Gcenx/macOS_Wine_builds](https://github.com/Gcenx/macOS_Wine_builds) | Wine Staging 11.18 |
+| Wine (`sikarugir`) | [Sikarugir-App/Engines](https://github.com/Sikarugir-App/Engines) | WS12WineSikarugir11.0_1 |
 | MoltenVK (`staging`) | [KhronosGroup/MoltenVK](https://github.com/KhronosGroup/MoltenVK) | v1.4.2 |
 | DXVK | [Gcenx/DXVK-macOS](https://github.com/Gcenx/DXVK-macOS) | v1.10.3-20230507 (async) |
 | winetricks | [Winetricks/winetricks](https://github.com/Winetricks/winetricks) | 20260125 |
@@ -75,6 +97,9 @@ with this engine. DXVK, winetricks and `verbs.txt` are bundled by both engines.
 # Wine Staging without D3DMetal
 ./scripts/build_libraries.sh --engine staging
 
+# Wine 11.0 with macOS patches and DXMT (Sikarugir)
+./scripts/build_libraries.sh --engine sikarugir
+
 # Wine Staging with D3DMetal, from the mounted Game Porting Toolkit DMG
 ./scripts/build_libraries.sh --engine staging --gptk "/Volumes/Evaluation environment for Windows games 3.0"
 
@@ -82,7 +107,7 @@ with this engine. DXVK, winetricks and `verbs.txt` are bundled by both engines.
 ./scripts/build_libraries.sh --publish
 ```
 
-Versions can be overridden with `GPTK_VERSION`, `WINE_VERSION`, `WINE_FLAVOR`
+Versions can be overridden with `GPTK_VERSION`, `SIKARUGIR_ENGINE`, `WINE_VERSION`, `WINE_FLAVOR`
 (`staging` or `devel`), `DXVK_VERSION`, `MOLTENVK_VERSION` and
 `WINETRICKS_VERSION`. The output is written to `build/`, which is ignored by git.
 
@@ -111,6 +136,11 @@ Known points to check:
   of the built archive before publishing it, as it redistributes Apple's
   D3DMetal. With `--engine staging --gptk`, read the licence in the Game
   Porting Toolkit DMG instead.
+- **Sikarugir licence.** The README of
+  [Sikarugir-App/Engines](https://github.com/Sikarugir-App/Engines) contains
+  only a title and states no licence, and the repository declares none. Wine
+  itself is LGPL 2.1, but check the licences of the macOS patches and of DXMT
+  with the Sikarugir authors before publishing an archive built from it.
 - **Steam.** Check that Steam's window renders (no black CEF UI) with the
   `gptk` engine.
 - **OpenGL 3.2+ patch.** The `winemac.so` patch that let SDL3 games create
