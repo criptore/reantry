@@ -18,6 +18,7 @@
 
 import Foundation
 import SemanticVersion
+import os.log
 
 public class WhiskyWineInstaller {
     /// The Whisky application folder
@@ -106,6 +107,7 @@ public class WhiskyWineInstaller {
                 applyOpenGLPatch()
             }
         } catch {
+            Logger.wineKit.error("Failed to install WhiskyWine: \(error)")
             print("Failed to install WhiskyWine: \(error)")
         }
     }

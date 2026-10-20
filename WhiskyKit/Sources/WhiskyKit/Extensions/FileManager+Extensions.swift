@@ -23,10 +23,11 @@ extension FileManager {
         in destinationDirectory: URL, withContentsIn sourceDirectory: URL, makeOriginalCopy: Bool = false
     ) throws {
         let enumerator = FileManager.default.enumerator(
-            at: sourceDirectory, includingPropertiesForKeys: [.isRegularFileKey])
+            at: sourceDirectory, includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsSubdirectoryDescendants])
 
         while let fileURL = enumerator?.nextObject() as? URL {
-            guard fileURL.pathExtension == "dll" else { return }
+            guard fileURL.pathExtension == "dll" else { continue }
             let originalURL = destinationDirectory.appending(path: fileURL.lastPathComponent)
             try FileManager.default.replaceFile(at: originalURL, with: fileURL, makeOriginalCopy: makeOriginalCopy)
         }
