@@ -18,9 +18,9 @@ repository set in `AppDistribution.repository`
 
 ```
 Libraries/
-├── Wine/                    # bin/, lib/, share/ (D3DMetal merged into lib/ when built with --gptk)
+├── Wine/                    # bin/, lib/, share/ (bin/wine is a symlink to wine64 with the gptk engine)
 ├── DXVK/                    # x64/ and x32/ DLLs, copied into bottles using the DXVK backend
-├── WineD3D/                 # Wine's Direct3D DLLs replaced by D3DMetal, for the WineD3D backend (--gptk only)
+├── WineD3D/                 # Wine's Direct3D DLLs replaced by D3DMetal, for the WineD3D backend (staging engine with --gptk only)
 ├── winetricks
 ├── verbs.txt
 └── WhiskyWineVersion.plist  # version dict: major, minor, patch, preRelease, build
@@ -30,32 +30,70 @@ Libraries/
 it with the installed copy at launch and offers to reinstall when the published
 version is higher, so it must increase every time the archive changes.
 
-### Building
+### Engines
 
-`scripts/build_libraries.sh` assembles the archive on a Mac from:
+`scripts/build_libraries.sh` builds the archive with one of two Wine engines,
+selected with `--engine`:
+
+| Engine | Source | Notes |
+|--------|--------|-------|
+| `gptk` (default) | [Gcenx/game-porting-toolkit](https://github.com/Gcenx/game-porting-toolkit) 3.0-3 | CrossOver based, D3DMetal included |
+| `staging` | [Gcenx/macOS_Wine_builds](https://github.com/Gcenx/macOS_Wine_builds) Wine Staging 11.18 | Upstream Wine, no D3DMetal unless merged with `--gptk` |
+
+`gptk` is the default because it is CrossOver based and already includes
+D3DMetal (`lib/external/D3DMetal.framework`, `libd3dshared.dylib` and the
+D3DMetal `d3d11`, `d3d12`, `dxgi`, `d3d10core`, `nvapi64` and `atidxx64`
+DLLs). The upstream Gcenx Wine Staging build has neither D3DMetal nor DXVK
+support out of the box, and Steam's CEF UI renders as a black window on it.
+
+The Game Porting Toolkit archive ships `wine64` but no `wine`, while the app
+always runs `<Libraries/Wine/bin>/wine` (and Winetricks uses `WINE=wine`). The
+script therefore creates a relative symlink `bin/wine -> wine64`. Symlinks
+survive both `tar -czf` when building and `tar -xf` in `WhiskyWineInstaller`.
+
+With `gptk` the script skips the MoltenVK replacement (MoltenVK is inside
+`lib/GStreamer.framework`) and rejects `--gptk`, since D3DMetal is already
+included. There is no `WineD3D` folder either, because the original wined3d
+DLLs are not in the archive: the WineD3D backend uses D3DMetal's builtin DLLs
+with this engine. DXVK, winetricks and `verbs.txt` are bundled by both engines.
+
+### Building
 
 | Component | Source | Default |
 |-----------|--------|---------|
-| Wine | [Gcenx/macOS_Wine_builds](https://github.com/Gcenx/macOS_Wine_builds) | Wine Staging 11.18 |
-| MoltenVK | [KhronosGroup/MoltenVK](https://github.com/KhronosGroup/MoltenVK) | v1.4.2 |
+| Wine (`gptk`) | [Gcenx/game-porting-toolkit](https://github.com/Gcenx/game-porting-toolkit) | Game Porting Toolkit 3.0-3 |
+| Wine (`staging`) | [Gcenx/macOS_Wine_builds](https://github.com/Gcenx/macOS_Wine_builds) | Wine Staging 11.18 |
+| MoltenVK (`staging`) | [KhronosGroup/MoltenVK](https://github.com/KhronosGroup/MoltenVK) | v1.4.2 |
 | DXVK | [Gcenx/DXVK-macOS](https://github.com/Gcenx/DXVK-macOS) | v1.10.3-20230507 (async) |
 | winetricks | [Winetricks/winetricks](https://github.com/Winetricks/winetricks) | 20260125 |
-| D3DMetal | Apple Game Porting Toolkit (optional) | — |
+| D3DMetal (`staging` only) | Apple Game Porting Toolkit (optional) | none |
 
 ```bash
-# Without D3DMetal
+# Default: Game Porting Toolkit 3.0-3 (D3DMetal included)
 ./scripts/build_libraries.sh
 
-# With D3DMetal, from the mounted Game Porting Toolkit DMG
-./scripts/build_libraries.sh --gptk "/Volumes/Evaluation environment for Windows games 3.0"
+# Wine Staging without D3DMetal
+./scripts/build_libraries.sh --engine staging
+
+# Wine Staging with D3DMetal, from the mounted Game Porting Toolkit DMG
+./scripts/build_libraries.sh --engine staging --gptk "/Volumes/Evaluation environment for Windows games 3.0"
 
 # Build and upload to the "libraries" release (needs `gh auth login`)
-./scripts/build_libraries.sh --gptk "/Volumes/..." --publish
+./scripts/build_libraries.sh --publish
 ```
 
-Versions can be overridden with `WINE_VERSION`, `WINE_FLAVOR` (`staging` or
-`devel`), `DXVK_VERSION`, `MOLTENVK_VERSION` and `WINETRICKS_VERSION`. The
-output is written to `build/`, which is ignored by git.
+Versions can be overridden with `GPTK_VERSION`, `WINE_VERSION`, `WINE_FLAVOR`
+(`staging` or `devel`), `DXVK_VERSION`, `MOLTENVK_VERSION` and
+`WINETRICKS_VERSION`. The output is written to `build/`, which is ignored by git.
+
+### Version scheme
+
+The version in `WhiskyWineVersion.plist` defaults to the build date as
+`YYYY.M.D` without leading zeros (for example `2026.10.20`). It is higher than
+the `11.18.0` that the fallback installs, so installed apps offer the update,
+and it increases with every build on a later day. Pass `--version X.Y.Z` to
+override it (for a second build on the same day, for instance `2026.10.20`
+then `2026.10.21`); the script only checks the `X.Y.Z` shape.
 
 Until the `libraries` release exists, the setup wizard falls back to the
 Gcenx Wine Staging build set in `AppDistribution.fallbackWineVersion` (11.18).
@@ -68,14 +106,13 @@ run a DirectX 11 game with each graphics backend.
 
 Known points to check:
 
-- **D3DMetal and upstream Wine.** D3DMetal was designed for CrossOver's Wine.
-  With the Gcenx upstream builds it may not load. If it does not, either
-  build Wine from the CrossOver sources
-  (https://www.codeweavers.com/crossover/source) and package it in
-  `Libraries/Wine` by hand, or ship without `--gptk` (the D3DMetal backend
-  then uses Wine's builtin Direct3D).
-- **D3DMetal licence.** Read the licence in the Game Porting Toolkit DMG
-  before redistributing its `redist` folder.
+- **D3DMetal licence.** Read the licence in
+  `Libraries/Wine/lib/external/D3DMetal.framework/Versions/A/Resources/LICENSE`
+  of the built archive before publishing it, as it redistributes Apple's
+  D3DMetal. With `--engine staging --gptk`, read the licence in the Game
+  Porting Toolkit DMG instead.
+- **Steam.** Check that Steam's window renders (no black CEF UI) with the
+  `gptk` engine.
 - **OpenGL 3.2+ patch.** The `winemac.so` patch that let SDL3 games create
   OpenGL 3.2+ contexts used a byte offset specific to the Gcenx 11.2 build,
   which Gcenx no longer hosts, so it is no longer applied. Check whether
