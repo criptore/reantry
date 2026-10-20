@@ -94,3 +94,6 @@ iOSInjectionProject/
 # Local secrets (Sparkle private key, tokens)
 .env
 *.pem
+
+# Build outputs
+*.dmg
