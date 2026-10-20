@@ -4,21 +4,29 @@ set -euo pipefail
 # Build Libraries.tar.gz, the Wine libraries downloaded by the setup wizard.
 #
 # Usage:
-#   ./scripts/build_libraries.sh [--gptk <path>] [--version X.Y.Z] [--publish]
+#   ./scripts/build_libraries.sh [--engine gptk|staging] [--gptk <path>] [--version X.Y.Z] [--publish]
 #
-#   --gptk <path>    Game Porting Toolkit to bundle D3DMetal from: the mounted DMG
+#   --engine <name>  Wine build to package. Defaults to gptk.
+#                    gptk:    Gcenx's Game Porting Toolkit build (CrossOver based, D3DMetal
+#                             included). Version set with GPTK_VERSION (default 3.0-3).
+#                    staging: Gcenx's Wine Staging build, optionally merged with Apple's
+#                             D3DMetal through --gptk.
+#   --gptk <path>    staging engine only. Game Porting Toolkit to bundle D3DMetal from:
+#                    the mounted DMG
 #                    (e.g. "/Volumes/Evaluation environment for Windows games 3.0")
 #                    or its "redist" folder. Download it from
 #                    https://developer.apple.com/download/all/?q=game%20porting%20toolkit
-#   --version X.Y.Z  Version written to WhiskyWineVersion.plist. Defaults to the Wine
-#                    version (11.18 -> 11.18.0). Must increase on every publish so
-#                    installed apps offer the update.
+#   --version X.Y.Z  Version written to WhiskyWineVersion.plist. Defaults to today's date
+#                    as YYYY.M.D (2026.10.20), which is higher than the 11.18.0 installed
+#                    by the fallback. Must increase on every publish so installed apps
+#                    offer the update.
 #   --publish        Upload Libraries.tar.gz and WhiskyWineVersion.plist to the
 #                    "libraries" release with the GitHub CLI (gh).
 #
 # Component versions can be overridden with environment variables, e.g.
 #   WINE_VERSION=11.19 ./scripts/build_libraries.sh
 
+GPTK_VERSION="${GPTK_VERSION:-3.0-3}"
 WINE_VERSION="${WINE_VERSION:-11.18}"
 WINE_FLAVOR="${WINE_FLAVOR:-staging}" # staging or devel
 DXVK_VERSION="${DXVK_VERSION:-v1.10.3-20230507-repack}"
@@ -33,6 +41,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BUILD_DIR="/tmp/libraries-build"
 OUTPUT_DIR="$PROJECT_DIR/build"
 
+ENGINE="gptk"
 GPTK_PATH=""
 LIBRARIES_VERSION=""
 PUBLISH=0
@@ -46,6 +55,7 @@ require_value() {
 
 while [ $# -gt 0 ]; do
     case "$1" in
+        --engine) require_value "$@"; ENGINE="$2"; shift 2 ;;
         --gptk) require_value "$@"; GPTK_PATH="$2"; shift 2 ;;
         --version) require_value "$@"; LIBRARIES_VERSION="$2"; shift 2 ;;
         --publish) PUBLISH=1; shift ;;
@@ -53,9 +63,19 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+case "$ENGINE" in
+    gptk|staging) ;;
+    *) echo "Error: --engine must be gptk or staging, got '$ENGINE'"; exit 1 ;;
+esac
+if [ "$ENGINE" = "gptk" ] && [ -n "$GPTK_PATH" ]; then
+    echo "Error: --gptk is not needed with --engine gptk, D3DMetal is already included."
+    echo "       Use --engine staging to merge Apple's Game Porting Toolkit into Wine Staging."
+    exit 1
+fi
+
 if [ -z "$LIBRARIES_VERSION" ]; then
-    IFS=. read -r MAJOR MINOR PATCH <<< "$WINE_VERSION"
-    LIBRARIES_VERSION="${MAJOR}.${MINOR:-0}.${PATCH:-0}"
+    # YYYY.M.D without leading zeros
+    LIBRARIES_VERSION="$(date +%Y).$((10#$(date +%m))).$((10#$(date +%d)))"
 fi
 if ! [[ "$LIBRARIES_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     echo "Error: version must look like X.Y.Z, got '$LIBRARIES_VERSION'"
@@ -76,19 +96,28 @@ LIBRARIES="$BUILD_DIR/Libraries"
 DOWNLOADS="$BUILD_DIR/downloads"
 
 echo "==> Downloading components"
-download "https://github.com/Gcenx/macOS_Wine_builds/releases/download/$WINE_VERSION/wine-$WINE_FLAVOR-$WINE_VERSION-osx64.tar.xz" \
-    "$DOWNLOADS/wine.tar.xz"
+if [ "$ENGINE" = "gptk" ]; then
+    download "https://github.com/Gcenx/game-porting-toolkit/releases/download/Game-Porting-Toolkit-$GPTK_VERSION/game-porting-toolkit-$GPTK_VERSION.tar.xz" \
+        "$DOWNLOADS/wine.tar.xz"
+else
+    download "https://github.com/Gcenx/macOS_Wine_builds/releases/download/$WINE_VERSION/wine-$WINE_FLAVOR-$WINE_VERSION-osx64.tar.xz" \
+        "$DOWNLOADS/wine.tar.xz"
+    download "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar" \
+        "$DOWNLOADS/moltenvk.tar"
+fi
 download "https://github.com/Gcenx/DXVK-macOS/releases/download/$DXVK_VERSION/dxvk-macOS-async-$DXVK_VERSION.tar.gz" \
     "$DOWNLOADS/dxvk.tar.gz"
-download "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar" \
-    "$DOWNLOADS/moltenvk.tar"
 download "https://raw.githubusercontent.com/Winetricks/winetricks/$WINETRICKS_VERSION/src/winetricks" \
     "$LIBRARIES/winetricks"
 download "https://raw.githubusercontent.com/Winetricks/winetricks/$WINETRICKS_VERSION/files/verbs/all.txt" \
     "$LIBRARIES/verbs.txt"
 chmod +x "$LIBRARIES/winetricks"
 
-echo "==> Installing Wine $WINE_FLAVOR $WINE_VERSION"
+if [ "$ENGINE" = "gptk" ]; then
+    echo "==> Installing Game Porting Toolkit $GPTK_VERSION"
+else
+    echo "==> Installing Wine $WINE_FLAVOR $WINE_VERSION"
+fi
 tar -xf "$DOWNLOADS/wine.tar.xz" -C "$BUILD_DIR/extract"
 WINE_ROOT=$(find "$BUILD_DIR/extract" -maxdepth 4 -type d -path "*.app/Contents/Resources/wine" | head -1)
 if [ -z "$WINE_ROOT" ]; then
@@ -97,9 +126,24 @@ if [ -z "$WINE_ROOT" ]; then
 fi
 mv "$WINE_ROOT" "$LIBRARIES/Wine"
 
-echo "==> Installing MoltenVK $MOLTENVK_VERSION"
-tar -xf "$DOWNLOADS/moltenvk.tar" -C "$BUILD_DIR/extract"
-cp "$BUILD_DIR/extract/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" "$LIBRARIES/Wine/lib/libMoltenVK.dylib"
+if [ "$ENGINE" = "gptk" ]; then
+    # The app always runs bin/wine, the GPTK build only ships wine64.
+    if [ ! -e "$LIBRARIES/Wine/bin/wine" ]; then
+        if [ ! -e "$LIBRARIES/Wine/bin/wine64" ]; then
+            echo "Error: neither bin/wine nor bin/wine64 found in the archive"
+            exit 1
+        fi
+        ln -s wine64 "$LIBRARIES/Wine/bin/wine"
+    fi
+    if [ ! -d "$LIBRARIES/Wine/lib/external/D3DMetal.framework" ]; then
+        echo "Error: D3DMetal.framework not found in the archive"
+        exit 1
+    fi
+else
+    echo "==> Installing MoltenVK $MOLTENVK_VERSION"
+    tar -xf "$DOWNLOADS/moltenvk.tar" -C "$BUILD_DIR/extract"
+    cp "$BUILD_DIR/extract/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" "$LIBRARIES/Wine/lib/libMoltenVK.dylib"
+fi
 
 echo "==> Installing DXVK $DXVK_VERSION"
 tar -xzf "$DOWNLOADS/dxvk.tar.gz" -C "$BUILD_DIR/extract"
@@ -107,7 +151,10 @@ mkdir -p "$LIBRARIES/DXVK"
 cp -R "$BUILD_DIR/extract/dxvk-macOS-async-$DXVK_VERSION/x64" "$LIBRARIES/DXVK/x64"
 cp -R "$BUILD_DIR/extract/dxvk-macOS-async-$DXVK_VERSION/x32" "$LIBRARIES/DXVK/x32"
 
-if [ -n "$GPTK_PATH" ]; then
+if [ "$ENGINE" = "gptk" ]; then
+    echo "==> Note: no WineD3D folder is built. The original wined3d DLLs are not in the"
+    echo "    archive, so the WineD3D backend uses D3DMetal's builtin DLLs with this engine."
+elif [ -n "$GPTK_PATH" ]; then
     if [ -d "$GPTK_PATH/redist/lib" ]; then
         REDIST="$GPTK_PATH/redist/lib"
     elif [ -d "$GPTK_PATH/lib" ]; then
@@ -179,7 +226,11 @@ fi
 rm -rf "$BUILD_DIR"
 
 echo "==> Done: $OUTPUT_DIR/Libraries.tar.gz (version $LIBRARIES_VERSION)"
-echo "    Wine $WINE_FLAVOR $WINE_VERSION, DXVK $DXVK_VERSION, MoltenVK $MOLTENVK_VERSION, winetricks $WINETRICKS_VERSION"
+if [ "$ENGINE" = "gptk" ]; then
+    echo "    Game Porting Toolkit $GPTK_VERSION (D3DMetal included), DXVK $DXVK_VERSION, winetricks $WINETRICKS_VERSION"
+else
+    echo "    Wine $WINE_FLAVOR $WINE_VERSION, DXVK $DXVK_VERSION, MoltenVK $MOLTENVK_VERSION, winetricks $WINETRICKS_VERSION"
+fi
 if [ -n "$GPTK_PATH" ]; then
     echo "    D3DMetal from $GPTK_PATH"
 fi
