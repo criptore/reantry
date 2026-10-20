@@ -53,6 +53,17 @@ extension Program {
     }
 
     public func runInTerminal() {
+        Task.detached(priority: .userInitiated) {
+            await self.runTerminalScript()
+        }
+    }
+
+    /// Same as `runInTerminal`, returning once the script was handed to Terminal.
+    public func runInTerminalAndWait() async {
+        await runTerminalScript()
+    }
+
+    private func runTerminalScript() async {
         let wineCmd = generateTerminalCommand().replacingOccurrences(of: "\\", with: "\\\\")
 
         let script = """
@@ -62,16 +73,14 @@ extension Program {
         end tell
         """
 
-        Task.detached(priority: .userInitiated) {
-            var error: NSDictionary?
-            guard let appleScript = NSAppleScript(source: script) else { return }
-            appleScript.executeAndReturnError(&error)
+        var error: NSDictionary?
+        guard let appleScript = NSAppleScript(source: script) else { return }
+        appleScript.executeAndReturnError(&error)
 
-            if let error = error {
-                Logger.wineKit.error("Failed to run terminal script \(error)")
-                guard let description = error["NSAppleScriptErrorMessage"] as? String else { return }
-                await self.showRunError(message: String(describing: description))
-            }
+        if let error = error {
+            Logger.wineKit.error("Failed to run terminal script \(error)")
+            guard let description = error["NSAppleScriptErrorMessage"] as? String else { return }
+            await self.showRunError(message: String(describing: description))
         }
     }
 

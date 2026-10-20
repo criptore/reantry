@@ -40,6 +40,10 @@
 		6E6C0CF62A419A8300356232 /* WhiskyWineDownloadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E6C0CF52A419A8300356232 /* WhiskyWineDownloadView.swift */; };
 		6E6C0CF82A419A8C00356232 /* WhiskyWineInstallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E6C0CF72A419A8C00356232 /* WhiskyWineInstallView.swift */; };
 		6E70A49B2A9A2197007799E9 /* Main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E70A49A2A9A2197007799E9 /* Main.swift */; };
+		7A10C0DE0000000000000002 /* CLIHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A10C0DE0000000000000001 /* CLIHelpers.swift */; };
+		7A10C0DE0000000000000004 /* WineCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A10C0DE0000000000000003 /* WineCommands.swift */; };
+		7A10C0DE0000000000000006 /* BottleCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A10C0DE0000000000000005 /* BottleCommands.swift */; };
+		7A10C0DE0000000000000008 /* RunCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A10C0DE0000000000000007 /* RunCommands.swift */; };
 		6E70A4A12A9A280C007799E9 /* WhiskyCmd.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E70A4A02A9A280C007799E9 /* WhiskyCmd.swift */; };
 		6E7C07BE2AAE7B0100F6E66B /* ProgramShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E7C07BD2AAE7B0100F6E66B /* ProgramShortcut.swift */; };
 		6E7C07C02AAF570100F6E66B /* FileOpenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E7C07BF2AAF570100F6E66B /* FileOpenView.swift */; };
@@ -143,6 +147,10 @@
 		6E6C0CF72A419A8C00356232 /* WhiskyWineInstallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhiskyWineInstallView.swift; sourceTree = "<group>"; };
 		6E70A4982A9A2197007799E9 /* WhiskyCmd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = WhiskyCmd; sourceTree = BUILT_PRODUCTS_DIR; };
 		6E70A49A2A9A2197007799E9 /* Main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Main.swift; sourceTree = "<group>"; };
+		7A10C0DE0000000000000001 /* CLIHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIHelpers.swift; sourceTree = "<group>"; };
+		7A10C0DE0000000000000003 /* WineCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WineCommands.swift; sourceTree = "<group>"; };
+		7A10C0DE0000000000000005 /* BottleCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottleCommands.swift; sourceTree = "<group>"; };
+		7A10C0DE0000000000000007 /* RunCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunCommands.swift; sourceTree = "<group>"; };
 		6E70A4A02A9A280C007799E9 /* WhiskyCmd.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhiskyCmd.swift; sourceTree = "<group>"; };
 		6E7C07BD2AAE7B0100F6E66B /* ProgramShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramShortcut.swift; sourceTree = "<group>"; };
 		6E7C07BF2AAF570100F6E66B /* FileOpenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOpenView.swift; sourceTree = "<group>"; };
@@ -379,6 +387,10 @@
 			isa = PBXGroup;
 			children = (
 				6E70A49A2A9A2197007799E9 /* Main.swift */,
+				7A10C0DE0000000000000001 /* CLIHelpers.swift */,
+				7A10C0DE0000000000000003 /* WineCommands.swift */,
+				7A10C0DE0000000000000005 /* BottleCommands.swift */,
+				7A10C0DE0000000000000007 /* RunCommands.swift */,
 			);
 			path = WhiskyCmd;
 			sourceTree = "<group>";
@@ -628,6 +640,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				6E70A49B2A9A2197007799E9 /* Main.swift in Sources */,
+				7A10C0DE0000000000000002 /* CLIHelpers.swift in Sources */,
+				7A10C0DE0000000000000004 /* WineCommands.swift in Sources */,
+				7A10C0DE0000000000000006 /* BottleCommands.swift in Sources */,
+				7A10C0DE0000000000000008 /* RunCommands.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

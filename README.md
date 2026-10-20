@@ -96,6 +96,43 @@ Wine logs are written to:
 
 Each run creates a timestamped log with full Wine output, including crash details and DLL load diagnostics.
 
+## Command line
+
+`WhiskyCmd` drives the app from the terminal, which allows testing without the GUI. Build the `WhiskyCmd`
+scheme in Xcode (the binary is also embedded in the app bundle) and run it from a terminal. Bottles are
+shared with the app.
+
+| Command | What it does |
+|---------|--------------|
+| `WhiskyCmd wine status` | Shows whether Wine is installed, its version, the library folder and whether an update is available |
+| `WhiskyCmd wine install [--file <archive>]` | Downloads the Wine libraries (with the Gcenx build as fallback) and installs them, or installs a local archive |
+| `WhiskyCmd create <name> [--windows win10]` | Creates a bottle and initializes its prefix |
+| `WhiskyCmd list` | Lists the bottles |
+| `WhiskyCmd config <bottle> [options]` | Prints the settings of a bottle, or changes them |
+| `WhiskyCmd exec <bottle> [--wait] -- <args...>` | Runs `wine <args>` in the bottle, streams the output and returns wine's exit status |
+| `WhiskyCmd run [--wait] <bottle> <exe> [args...]` | Runs a program: in Terminal, or with `--wait` attached to the command, returning the program's exit status |
+| `WhiskyCmd logs [--last]` | Prints the logs folder, or the path and content of the newest log |
+| `WhiskyCmd add`, `remove`, `delete`, `shellenv` | Add, forget or delete a bottle, print `export` statements for a bottle |
+
+`config` takes `--backend d3dmetal|dxvk|wined3d`, `--windows <version>`, `--sync none|esync|msync`,
+`--dxvk-async true|false`, `--dxvk-hud full|partial|fps|off`, `--metal-hud true|false`, `--avx true|false`
+and `--runtime <name>|default`. The values are saved to the bottle's `Metadata.plist`.
+
+```bash
+WhiskyCmd wine install
+WhiskyCmd create test --windows win10
+WhiskyCmd config test --backend dxvk --dxvk-hud fps
+WhiskyCmd exec test -- cmd /c ver
+WhiskyCmd logs --last | grep -E "Graphics Backend|WINEDLLOVERRIDES"
+```
+
+`exec --wait` also waits for the other processes started in the bottle (`wineserver -w`). Options of
+`run` go before the bottle name, and everything after the program is passed to it
+(`WhiskyCmd run --wait test game.exe -windowed`). Failures are reported on stderr with exit status 1.
+
+Log files are named after the time they were started, to the second. Two runs started within the same
+second share one log file, so `logs --last` can show both.
+
 ---
 
 ## Changelog (from upstream Whisky v2.3.5)
