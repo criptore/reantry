@@ -5,7 +5,7 @@
 
   [![macOS](https://img.shields.io/badge/macOS-14.0%2B-blue)](https://www.apple.com/macos/)
   [![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-M1%2FM2%2FM3%2FM4-green)](https://support.apple.com/en-us/116943)
-  [![Wine](https://img.shields.io/badge/Wine-Staging%2011.2-purple)](https://github.com/Gcenx/macOS_Wine_builds)
+  [![Wine](https://img.shields.io/badge/Wine-Staging%2011.18-purple)](https://github.com/Gcenx/macOS_Wine_builds)
   [![License](https://img.shields.io/badge/License-GPL--3.0-orange)](LICENSE)
 
   Fork of [Moonshine](https://github.com/ybmeng/moonshine), itself a fork of [Whisky-App/Whisky](https://github.com/Whisky-App/Whisky) (archived May 2025)
@@ -38,9 +38,8 @@ Moonshine is a maintained fork of Whisky, a native SwiftUI wrapper for Wine on m
 2. Open the DMG and drag **Moonshine.app** to **Applications**
 3. Launch the app — the setup wizard will automatically:
    - Download the Wine libraries from the [`libraries` release](https://github.com/criptore/reantry/releases/tag/libraries)
-     (or [Wine Staging 11.2](https://github.com/Gcenx/macOS_Wine_builds/releases/tag/11.2) from Gcenx if that release is not published yet)
+     (or [Wine Staging 11.18](https://github.com/Gcenx/macOS_Wine_builds/releases/tag/11.18) from Gcenx if that release is not published yet)
    - Extract and install Wine into the correct directory structure
-   - Apply the OpenGL 3.2+ patch to `winemac.so` (Gcenx build only)
 4. Create a bottle and start running Windows programs
 
 No manual Wine installation, no terminal commands, no patching required.

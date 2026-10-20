@@ -97,59 +97,16 @@ public class WhiskyWineInstaller {
                 let versionPlist = libraryFolder
                     .appending(path: "WhiskyWineVersion")
                     .appendingPathExtension("plist")
-                let versionInfo = WhiskyWineVersion(version: SemanticVersion(11, 2, 0))
+                let fallback = AppDistribution.fallbackWineVersion
+                let versionInfo = WhiskyWineVersion(version: SemanticVersion(fallback.major, fallback.minor, 0))
                 let encoder = PropertyListEncoder()
                 encoder.outputFormat = .xml
                 let data = try encoder.encode(versionInfo)
                 try data.write(to: versionPlist)
-
-                // The patch offset only matches the Gcenx Wine Staging 11.2 winemac.so
-                applyOpenGLPatch()
             }
         } catch {
             Logger.wineKit.error("Failed to install WhiskyWine: \(error)")
             print("Failed to install WhiskyWine: \(error)")
-        }
-    }
-
-    /// Patches winemac.so to enable OpenGL 3.2+ context creation for SDL3-based games.
-    /// Changes byte at offset 0x329fb from 0x74 (JE) to 0xEB (JMP).
-    private static func applyOpenGLPatch() {
-        let winemacPath = libraryFolder
-            .appending(path: "Wine")
-            .appending(path: "lib")
-            .appending(path: "wine")
-            .appending(path: "x86_64-unix")
-            .appending(path: "winemac.so")
-
-        guard FileManager.default.fileExists(atPath: winemacPath.path) else {
-            print("winemac.so not found, skipping OpenGL patch")
-            return
-        }
-
-        do {
-            let fileHandle = try FileHandle(forUpdating: winemacPath)
-            defer { fileHandle.closeFile() }
-
-            let patchOffset: UInt64 = 0x329fb
-            fileHandle.seek(toFileOffset: patchOffset)
-
-            guard let currentByte = fileHandle.readData(ofLength: 1).first else {
-                print("Failed to read byte at patch offset")
-                return
-            }
-
-            if currentByte == 0x74 {
-                fileHandle.seek(toFileOffset: patchOffset)
-                fileHandle.write(Data([0xEB]))
-                print("OpenGL patch applied successfully")
-            } else if currentByte == 0xEB {
-                print("OpenGL patch already applied")
-            } else {
-                print("Unexpected byte 0x\(String(currentByte, radix: 16)) at patch offset, skipping patch")
-            }
-        } catch {
-            print("Failed to apply OpenGL patch: \(error)")
         }
     }
 
