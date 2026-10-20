@@ -3,11 +3,11 @@ set -euo pipefail
 
 # Moonshine — Build from Source
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/ybmeng/moonshine/main/scripts/build_from_source.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/criptore/reantry/main/scripts/build_from_source.sh | bash
 # Or from within the repo:
 #   ./scripts/build_from_source.sh
 
-REPO_URL="https://github.com/ybmeng/moonshine.git"
+REPO_URL="https://github.com/criptore/reantry.git"
 SCHEME="Whisky"
 CONFIGURATION="Release"
 
@@ -32,17 +32,17 @@ else
 fi
 
 # --- Step 3: Clone repo (if needed) ---
-# Check if we're already inside the moonshine repo
+# Check if we're already inside the repo
 if [ -f "Whisky.xcodeproj/project.pbxproj" ]; then
     PROJECT_DIR="$(pwd)"
-    echo "==> Already in moonshine repo: $PROJECT_DIR"
+    echo "==> Already in repo: $PROJECT_DIR"
 else
-    PROJECT_DIR="$HOME/moonshine"
+    PROJECT_DIR="$HOME/reantry"
     if [ -d "$PROJECT_DIR/.git" ]; then
         echo "==> Repo already cloned at $PROJECT_DIR, pulling latest..."
         git -C "$PROJECT_DIR" pull
     else
-        echo "==> Cloning moonshine..."
+        echo "==> Cloning reantry..."
         git clone "$REPO_URL" "$PROJECT_DIR"
     fi
     cd "$PROJECT_DIR"
@@ -91,4 +91,4 @@ open "$INSTALL_PATH"
 
 echo ""
 echo "==> Done! Moonshine.app is installed and running."
-echo "    The setup wizard will download Wine Staging 11.2 and apply the OpenGL patch."
+echo "    The setup wizard will download and install Wine."

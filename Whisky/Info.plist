@@ -54,9 +54,9 @@
 		</dict>
 	</array>
 	<key>SUFeedURL</key>
-	<string>https://data.getwhisky.app/appcast.xml</string>
+	<string>https://raw.githubusercontent.com/criptore/reantry/main/appcast.xml</string>
 	<key>SUPublicEDKey</key>
-	<string>tnZFAvPUfCpM7Tr7Sx5gKRm6BUQQ6htJQeOMP44evms=</string>
+	<string>WXIpUrEFgdqMeq5wW0bcTAgvPK9f86nllqVSfJUDtoY=</string>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>

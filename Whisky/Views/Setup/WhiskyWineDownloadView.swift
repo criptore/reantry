@@ -65,38 +65,46 @@ struct WhiskyWineDownloadView: View {
         .frame(width: 400, height: 200)
         .onAppear {
             Task {
-                let wineURL = "https://github.com/Gcenx/macOS_Wine_builds/"
-                    + "releases/download/11.2/wine-staging-11.2-osx64.tar.xz"
-                if let url: URL = URL(string: wineURL) {
-                    downloadTask = URLSession(configuration: .ephemeral).downloadTask(with: url) { url, _, _ in
-                        Task.detached {
-                            await MainActor.run {
-                                if let url = url {
-                                    tarLocation = url
-                                    proceed()
-                                }
-                            }
-                        }
+                let urls = [AppDistribution.librariesURL, AppDistribution.fallbackLibrariesURL]
+                startDownload(from: urls.compactMap { $0 })
+            }
+        }
+    }
+
+    /// Downloads the first URL that answers, moving on to the next one when the server reports an error.
+    func startDownload(from urls: [URL]) {
+        guard let url = urls.first else { return }
+        let fallbacks = Array(urls.dropFirst())
+
+        downloadTask = URLSession(configuration: .ephemeral).downloadTask(with: url) { url, response, _ in
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+            Task.detached {
+                await MainActor.run {
+                    if let url = url, statusCode == 200 || fallbacks.isEmpty {
+                        tarLocation = url
+                        proceed()
+                    } else {
+                        startDownload(from: fallbacks)
                     }
-                    observation = downloadTask?.observe(\.countOfBytesReceived) { task, _ in
-                        Task {
-                            await MainActor.run {
-                                let currentTime = Date()
-                                let elapsedTime = currentTime.timeIntervalSince(startTime ?? currentTime)
-                                if completedBytes > 0 {
-                                    downloadSpeed = Double(completedBytes) / elapsedTime
-                                }
-                                totalBytes = task.countOfBytesExpectedToReceive
-                                completedBytes = task.countOfBytesReceived
-                                fractionProgress = Double(completedBytes) / Double(totalBytes)
-                            }
-                        }
-                    }
-                    startTime = Date()
-                    downloadTask?.resume()
                 }
             }
         }
+        observation = downloadTask?.observe(\.countOfBytesReceived) { task, _ in
+            Task {
+                await MainActor.run {
+                    let currentTime = Date()
+                    let elapsedTime = currentTime.timeIntervalSince(startTime ?? currentTime)
+                    if completedBytes > 0 {
+                        downloadSpeed = Double(completedBytes) / elapsedTime
+                    }
+                    totalBytes = task.countOfBytesExpectedToReceive
+                    completedBytes = task.countOfBytesReceived
+                    fractionProgress = Double(completedBytes) / Double(totalBytes)
+                }
+            }
+        }
+        startTime = Date()
+        downloadTask?.resume()
     }
 
     func formatBytes(bytes: Int64) -> String {

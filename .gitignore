@@ -90,3 +90,10 @@ fastlane/test_output
 # https://github.com/johnno1962/injectionforxcode
 
 iOSInjectionProject/
+
+# Local secrets (Sparkle private key, tokens)
+.env
+*.pem
+
+# Build outputs
+*.dmg
