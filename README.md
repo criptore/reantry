@@ -128,7 +128,8 @@ WhiskyCmd logs --last | grep -E "Graphics Backend|WINEDLLOVERRIDES"
 
 `exec --wait` also waits for the other processes started in the bottle (`wineserver -w`). Options of
 `run` go before the bottle name, and everything after the bottle name is passed to the program, even
-arguments starting with a dash, without `--` (`WhiskyCmd run --wait test game.exe -windowed`). Without
+arguments starting with a dash. A `--` before the program's arguments is optional and is not passed on, so
+`WhiskyCmd run --wait test game.exe -windowed` and `WhiskyCmd run --wait test game.exe -- -windowed` are the same. Without
 `--wait`, `run` starts the program detached from the terminal and prints the log that receives its output. Failures are reported on stderr with exit status 1.
 
 Log files are named after the time they were started, to the second. Two runs started within the same

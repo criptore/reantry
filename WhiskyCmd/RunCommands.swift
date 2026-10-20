@@ -64,7 +64,7 @@ extension Whisky {
             Without --wait, the program is started in the background and this command returns right away, \
             printing the log file that receives its output. With --wait, it runs attached to this command, and \
             the exit status of the program becomes the exit status of this command. Options go before the \
-            bottle, everything after the bottle is passed to the program, dashes included.
+            bottle, everything after the program is passed to it, dashes included. A leading -- is optional.
             Example: WhiskyCmd run --wait mybottle game.exe -windowed
             """
         )
@@ -85,16 +85,21 @@ extension Whisky {
             try CLI.requireWine()
             try CLI.prepareGraphicsBackend(for: bottle)
             let savedArguments = program.settings.arguments.split { $0.isWhitespace }.map(String.init)
+            // `run bottle game.exe -- -flag` also works: a single leading "--" is not passed on.
+            let programArguments = args.first == "--" ? Array(args.dropFirst()) : args
 
             guard wait else {
                 let log = try Wine.launchDetached(
-                    at: url, args: savedArguments + args, bottle: bottle, environment: program.generateEnvironment()
+                    at: url,
+                    args: savedArguments + programArguments,
+                    bottle: bottle,
+                    environment: program.generateEnvironment()
                 )
                 Console.out("Started \(url.lastPathComponent), log: \(log.path(percentEncoded: false))")
                 return
             }
             let status = try await CLI.streamWine(
-                args: [url.path(percentEncoded: false)] + savedArguments + args,
+                args: [url.path(percentEncoded: false)] + savedArguments + programArguments,
                 bottle: bottle,
                 environment: program.generateEnvironment(),
                 directory: url.deletingLastPathComponent()
