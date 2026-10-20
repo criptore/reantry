@@ -102,9 +102,9 @@ struct WhiskyWineDownloadView: View {
                     if completedBytes > 0 {
                         downloadSpeed = Double(completedBytes) / elapsedTime
                     }
-                    totalBytes = task.countOfBytesExpectedToReceive
+                    // The server may not send a size, which leaves the expected count at -1
+                    totalBytes = max(task.countOfBytesExpectedToReceive, 0)
                     completedBytes = task.countOfBytesReceived
-                    // The server may not send a size, which leaves totalBytes at 0 or -1
                     fractionProgress = totalBytes > 0 ? Double(completedBytes) / Double(totalBytes) : 0
                 }
             }
@@ -136,7 +136,7 @@ struct WhiskyWineDownloadView: View {
 
     func shouldShowEstimate() -> Bool {
         let elapsedTime = Date().timeIntervalSince(startTime ?? Date())
-        return Int(elapsedTime.rounded()) > 5 && completedBytes != 0
+        return Int(elapsedTime.rounded()) > 5 && completedBytes != 0 && totalBytes > 0
     }
 
     func formatRemainingTime(remainingBytes: Int64) -> String {
