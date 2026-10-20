@@ -24,19 +24,20 @@ import SemanticVersion
 import ArgumentParser
 
 @main
-struct Whisky: ParsableCommand {
+struct Whisky: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "A CLI interface for Whisky.",
         subcommands: [List.self,
                       Create.self,
+                      Config.self,
                       Add.self,
-//                      Export.self,
                       Delete.self,
                       Remove.self,
                       Run.self,
-                      Shellenv.self
-                      /*Install.self,
-                      Uninstall.self*/])
+                      Exec.self,
+                      Logs.self,
+                      WineCommand.self,
+                      Shellenv.self])
 }
 
 extension Whisky {
@@ -62,34 +63,6 @@ extension Whisky {
         }
     }
 
-    struct Create: ParsableCommand {
-        static let configuration = CommandConfiguration(abstract: "Create a new bottle.")
-
-        @Argument var name: String
-
-        mutating func run() throws {
-            let bottleURL = BottleData.defaultBottleDir.appending(path: UUID().uuidString)
-
-            do {
-                try FileManager.default.createDirectory(atPath: bottleURL.path(percentEncoded: false),
-                                                        withIntermediateDirectories: true)
-                let bottle = Bottle(bottleUrl: bottleURL, inFlight: true)
-                // Should allow customisation
-                bottle.settings.windowsVersion = .win10
-                bottle.settings.name = name
-//                try await Wine.changeWinVersion(bottle: bottle, win: winVersion)
-//                let wineVer = try await Wine.wineVersion()
-                bottle.settings.wineVersion = SemanticVersion(0, 0, 0)
-
-                var bottlesList = BottleData()
-                bottlesList.paths.append(bottleURL)
-                print("Created new bottle \"\(name)\".")
-            } catch {
-                throw ValidationError("\(error)")
-            }
-        }
-    }
-
     struct Add: ParsableCommand {
         static let configuration = CommandConfiguration(abstract: "Add an existing bottle.")
 
@@ -102,14 +75,6 @@ extension Whisky {
             var bottlesList = BottleData()
             bottlesList.paths.append(bottleURL)
             print("Bottle \"\(settings.name)\" added.")
-        }
-    }
-
-    struct Export: ParsableCommand {
-        static let configuration = CommandConfiguration(abstract: "Export an existing bottle.")
-
-        mutating func run() throws {
-//            print("Create a bottle")
         }
     }
 
@@ -158,27 +123,6 @@ extension Whisky {
         }
     }
 
-    struct Run: ParsableCommand {
-        static let configuration = CommandConfiguration(abstract: "Run a program with Whisky.")
-
-        @Argument var bottleName: String
-        @Argument var path: String
-        @Argument var args: [String] = []
-
-        mutating func run() throws {
-            var bottlesList = BottleData()
-            let bottles = bottlesList.loadBottles()
-
-            guard let bottle = bottles.first(where: { $0.settings.name == bottleName }) else {
-                throw ValidationError("A bottle with that name doesn't exist.")
-            }
-
-            let url = URL(fileURLWithPath: path)
-            let program = Program(url: url, bottle: bottle)
-            program.runInTerminal()
-        }
-    }
-
     struct Shellenv: ParsableCommand {
         static let configuration = CommandConfiguration(abstract: "Prints export statements for a Bottle for eval.")
 
@@ -194,24 +138,6 @@ extension Whisky {
 
             let envCmd = Wine.generateTerminalEnvironmentCommand(bottle: bottle)
             print(envCmd)
-
-        }
-    }
-
-    struct Install: ParsableCommand {
-        static let configuration = CommandConfiguration(abstract: "Install WhiskyWine.")
-
-        mutating func run() throws {
-
-        }
-    }
-
-    struct Uninstall: ParsableCommand {
-        static let configuration = CommandConfiguration(abstract: "Uninstall WhiskyWine.")
-
-        @Flag(name: [.long, .short], help: "Uninstall WhiskyWine") var whiskyWine = false
-
-        mutating func run() throws {
 
         }
     }

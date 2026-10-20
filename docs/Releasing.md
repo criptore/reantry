@@ -130,3 +130,34 @@ If the private key is lost, users have to download the next version manually.
 `generate_appcast` can produce the same item automatically when pointed at a
 folder holding the zip:
 `./bin/generate_appcast --download-url-prefix https://github.com/criptore/reantry/releases/download/vX.Y.Z/ updates/`
+
+## Testing without the GUI
+
+`WhiskyCmd` (see the Command line section of the README) can create bottles, change their settings and run
+Wine, so a build can be checked from a terminal. This script runs `winecfg` once per graphics backend and checks
+in the newest log that the backend was applied:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+CLI=./WhiskyCmd   # path to the built WhiskyCmd binary
+
+$CLI wine status
+$CLI wine install            # skip when Wine is already installed
+$CLI create backend-test --windows win10
+
+for backend in d3dmetal dxvk wined3d; do
+    echo "== $backend"
+    $CLI config backend-test --backend "$backend"
+    $CLI exec backend-test -- winecfg -v win10   # without -v, winecfg opens its window and waits
+    log=$($CLI logs --last)
+    echo "$log" | grep -i "Graphics Backend: $backend"
+    echo "$log" | grep "WINEDLLOVERRIDES" || echo "no WINEDLLOVERRIDES (expected for d3dmetal)"
+done
+
+$CLI exec backend-test -- cmd /c ver
+$CLI delete backend-test
+```
+
+Expect no `WINEDLLOVERRIDES` with `d3dmetal`, a `WINEDLLOVERRIDES` of `d3d10core,d3d11,d3d9,dxgi=n,b` with `dxvk`, and the Direct3D DLLs of the `WineD3D` folder with `wined3d`. `exec` returns wine's exit
+status, so a failing command fails the script.
