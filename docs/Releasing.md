@@ -58,7 +58,7 @@ Versions can be overridden with `WINE_VERSION`, `WINE_FLAVOR` (`staging` or
 output is written to `build/`, which is ignored by git.
 
 Until the `libraries` release exists, the setup wizard falls back to the
-Gcenx Wine Staging 11.2 build.
+Gcenx Wine Staging build set in `AppDistribution.fallbackWineVersion` (11.18).
 
 ### Before publishing a new archive
 
@@ -76,9 +76,10 @@ Known points to check:
   then uses Wine's builtin Direct3D).
 - **D3DMetal licence.** Read the licence in the Game Porting Toolkit DMG
   before redistributing its `redist` folder.
-- **OpenGL 3.2+ patch.** The installer only patches `winemac.so` for the Gcenx
-  11.2 fallback, since the byte offset is specific to that binary. Check
-  whether SDL3/OpenGL 3.2 games still need it on the new Wine version.
+- **OpenGL 3.2+ patch.** The `winemac.so` patch that let SDL3 games create
+  OpenGL 3.2+ contexts used a byte offset specific to the Gcenx 11.2 build,
+  which Gcenx no longer hosts, so it is no longer applied. Check whether
+  SDL3/OpenGL 3.2 games still need it on the current Wine version.
 
 ## Sparkle signing key
 
