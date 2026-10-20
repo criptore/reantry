@@ -20,10 +20,6 @@ import Foundation
 import os.log
 
 public class Wine {
-    /// URL to the installed `DXVK` folder
-    private static let dxvkFolder: URL = WhiskyWineInstaller.libraryFolder.appending(path: "DXVK")
-    /// URL to Wine's own Direct3D DLLs, saved before D3DMetal replaced them in the Wine libraries
-    private static let wineD3DFolder: URL = WhiskyWineInstaller.libraryFolder.appending(path: "WineD3D")
     /// Path to the `wine` binary
     public static let wineBinary: URL = WhiskyWineInstaller.binFolder.appending(path: "wine")
 
@@ -224,47 +220,6 @@ public class Wine {
         Task.detached(priority: .userInitiated) {
             try await runWineserver(["-k"], bottle: bottle)
         }
-    }
-
-    public static func enableDXVK(bottle: Bottle) throws {
-        try FileManager.default.replaceDLLs(
-            in: bottle.url.appending(path: "drive_c").appending(path: "windows").appending(path: "system32"),
-            withContentsIn: Wine.dxvkFolder.appending(path: "x64")
-        )
-        try FileManager.default.replaceDLLs(
-            in: bottle.url.appending(path: "drive_c").appending(path: "windows").appending(path: "syswow64"),
-            withContentsIn: Wine.dxvkFolder.appending(path: "x32")
-        )
-    }
-
-    /// Copy Wine's own Direct3D DLLs into the bottle when D3DMetal replaced them in the Wine libraries
-    public static func enableWineD3D(bottle: Bottle) throws {
-        try FileManager.default.replaceDLLs(
-            in: bottle.url.appending(path: "drive_c").appending(path: "windows").appending(path: "system32"),
-            withContentsIn: Wine.wineD3DFolder.appending(path: "x64")
-        )
-    }
-
-    /// `WINEDLLOVERRIDES` value loading the DLLs of the given graphics backend that were copied into the bottle.
-    ///
-    /// D3DMetal is built into the Wine libraries and needs no override. Without an override, Wine loads its builtin
-    /// DLLs before the ones in `system32`, so DLLs left in the bottle by another backend are ignored.
-    private static func graphicsDLLOverrides(for backend: GraphicsBackend) -> String? {
-        let native: [String]
-        switch backend {
-        case .d3dMetal:
-            native = []
-        case .dxvk:
-            native = ["dxgi", "d3d9", "d3d10core", "d3d11"]
-        case .wineD3D:
-            let dlls = (try? FileManager.default.contentsOfDirectory(
-                at: wineD3DFolder.appending(path: "x64"), includingPropertiesForKeys: nil
-            )) ?? []
-            native = dlls.filter { $0.pathExtension == "dll" }.map { $0.deletingPathExtension().lastPathComponent }
-        }
-
-        guard !native.isEmpty else { return nil }
-        return native.sorted().joined(separator: ",") + "=n,b"
     }
 
     /// Construct an environment merging the bottle values with the given values

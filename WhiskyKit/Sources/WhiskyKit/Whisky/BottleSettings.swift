@@ -315,8 +315,8 @@ public struct BottleSettings: Codable, Equatable {
         try data.write(to: metadataUrl)
     }
 
-    /// Environment variables derived from the bottle settings.
-    /// `WINEDLLOVERRIDES` for the graphics backend is set by `Wine`, which knows which libraries are installed.
+    // Environment variables derived from the bottle settings. `WINEDLLOVERRIDES` for the graphics
+    // backend is set by `Wine`, which knows which libraries are installed.
     // swiftlint:disable:next cyclomatic_complexity
     public func environmentVariables(wineEnv: inout [String: String]) {
         if dxvk {
