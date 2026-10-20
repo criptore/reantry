@@ -26,67 +26,69 @@ extension Whisky {
         static let configuration = CommandConfiguration(
             commandName: "wine",
             abstract: "Manage the Wine libraries.",
-            subcommands: [Status.self, Install.self]
+            subcommands: [WineStatus.self, WineInstall.self]
+        )
+    }
+
+    struct WineStatus: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(
+            commandName: "status",
+            abstract: "Show whether Wine is installed, its version and whether an update is available."
         )
 
-        struct Status: AsyncParsableCommand {
-            static let configuration = CommandConfiguration(
-                abstract: "Show whether Wine is installed, its version and whether an update is available."
-            )
+        mutating func run() async throws {
+            Console.out("Library folder: \(WhiskyWineInstaller.libraryFolder.path(percentEncoded: false))")
 
-            mutating func run() async throws {
-                Console.out("Library folder: \(WhiskyWineInstaller.libraryFolder.path(percentEncoded: false))")
+            guard let version = WhiskyWineInstaller.whiskyWineVersion() else {
+                Console.out("Installed: no")
+                return
+            }
+            Console.out("Installed: yes")
+            Console.out("Version: \(version)")
 
-                guard let version = WhiskyWineInstaller.whiskyWineVersion() else {
-                    Console.out("Installed: no")
-                    return
-                }
-                Console.out("Installed: yes")
-                Console.out("Version: \(version)")
+            let runtimes = WhiskyWineInstaller.installedRuntimes()
+            Console.out("Extra runtimes: \(runtimes.isEmpty ? "none" : runtimes.joined(separator: ", "))")
 
-                let runtimes = WhiskyWineInstaller.installedRuntimes()
-                Console.out("Extra runtimes: \(runtimes.isEmpty ? "none" : runtimes.joined(separator: ", "))")
-
-                let (updateAvailable, remoteVersion) = await WhiskyWineInstaller.shouldUpdateWhiskyWine()
-                if updateAvailable {
-                    Console.out("Update available: yes (\(remoteVersion))")
-                } else {
-                    Console.out("Update available: no")
-                }
+            let (updateAvailable, remoteVersion) = await WhiskyWineInstaller.shouldUpdateWhiskyWine()
+            if updateAvailable {
+                Console.out("Update available: yes (\(remoteVersion))")
+            } else {
+                Console.out("Update available: no")
             }
         }
+    }
 
-        struct Install: AsyncParsableCommand {
-            static let configuration = CommandConfiguration(
-                abstract: "Download and install the Wine libraries.",
-                discussion: "Without --file, the archive is downloaded the same way the app does it during its setup."
-            )
+    struct WineInstall: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(
+            commandName: "install",
+            abstract: "Download and install the Wine libraries.",
+            discussion: "Without --file, the archive is downloaded the same way the app does it during its setup."
+        )
 
-            @Option(name: .long, help: "Install from this local archive instead of downloading one.")
-            var file: String?
+        @Option(name: .long, help: "Install from this local archive instead of downloading one.")
+        var file: String?
 
-            mutating func run() async throws {
-                let archive: URL
-                if let file {
-                    let source = URL(fileURLWithPath: file)
-                    guard FileManager.default.fileExists(atPath: source.path(percentEncoded: false)) else {
-                        throw ValidationError("No file at \"\(file)\".")
-                    }
-                    // WhiskyWineInstaller.install deletes the archive it installs, so give it a copy
-                    archive = try LibrariesDownload.stagingURL(for: source.lastPathComponent)
-                    try FileManager.default.copyItem(at: source, to: archive)
-                } else {
-                    archive = try await LibrariesDownload.download()
+        mutating func run() async throws {
+            let archive: URL
+            if let file {
+                let source = URL(fileURLWithPath: file)
+                guard FileManager.default.fileExists(atPath: source.path(percentEncoded: false)) else {
+                    throw ValidationError("No file at \"\(file)\".")
                 }
-
-                Console.out("Installing...")
-                WhiskyWineInstaller.install(from: archive)
-
-                guard let version = WhiskyWineInstaller.whiskyWineVersion() else {
-                    throw ValidationError("The installation failed, see the messages above.")
-                }
-                Console.out("Installed Wine \(version).")
+                // WhiskyWineInstaller.install deletes the archive it installs, so give it a copy
+                archive = try LibrariesDownload.stagingURL(for: source.lastPathComponent)
+                try FileManager.default.copyItem(at: source, to: archive)
+            } else {
+                archive = try await LibrariesDownload.download()
             }
+
+            Console.out("Installing...")
+            WhiskyWineInstaller.install(from: archive)
+
+            guard let version = WhiskyWineInstaller.whiskyWineVersion() else {
+                throw ValidationError("The installation failed, see the messages above.")
+            }
+            Console.out("Installed Wine \(version).")
         }
     }
 }
