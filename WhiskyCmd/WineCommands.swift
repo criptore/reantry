@@ -50,8 +50,11 @@ extension Whisky {
             let runtimes = WhiskyWineInstaller.installedRuntimes()
             Console.out("Extra runtimes: \(runtimes.isEmpty ? "none" : runtimes.joined(separator: ", "))")
 
-            let (updateAvailable, remoteVersion) = await WhiskyWineInstaller.shouldUpdateWhiskyWine()
-            if updateAvailable {
+            guard let remoteVersion = await WhiskyWineInstaller.remoteWhiskyWineVersion() else {
+                Console.out("Update check: unavailable")
+                return
+            }
+            if version < remoteVersion {
                 Console.out("Update available: yes (\(remoteVersion))")
             } else {
                 Console.out("Update available: no")

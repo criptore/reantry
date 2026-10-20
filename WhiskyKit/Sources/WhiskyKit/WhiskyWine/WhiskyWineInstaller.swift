@@ -118,34 +118,33 @@ public class WhiskyWineInstaller {
         }
     }
 
-    public static func shouldUpdateWhiskyWine() async -> (Bool, SemanticVersion) {
-        let localVersion = whiskyWineVersion()
-
-        var remoteVersion: SemanticVersion?
-
-        if let remoteUrl = AppDistribution.librariesVersionURL {
-            remoteVersion = await withCheckedContinuation { continuation in
-                URLSession(configuration: .ephemeral).dataTask(with: URLRequest(url: remoteUrl)) { data, _, error in
-                    do {
-                        if error == nil, let data = data {
-                            let decoder = PropertyListDecoder()
-                            let remoteInfo = try decoder.decode(WhiskyWineVersion.self, from: data)
-                            let remoteVersion = remoteInfo.version
-
-                            continuation.resume(returning: remoteVersion)
-                            return
-                        }
-                        if let error = error {
-                            print(error)
-                        }
-                    } catch {
+    /// The version published next to the libraries, or nil when it cannot be read.
+    public static func remoteWhiskyWineVersion() async -> SemanticVersion? {
+        guard let remoteUrl = AppDistribution.librariesVersionURL else { return nil }
+        return await withCheckedContinuation { continuation in
+            URLSession(configuration: .ephemeral).dataTask(with: URLRequest(url: remoteUrl)) { data, response, error in
+                // A missing file is answered with an HTML 404 page, which is not worth decoding
+                guard error == nil, (response as? HTTPURLResponse)?.statusCode == 200, let data = data else {
+                    if let error = error {
                         print(error)
                     }
-
                     continuation.resume(returning: nil)
-                }.resume()
-            }
+                    return
+                }
+                do {
+                    let remoteInfo = try PropertyListDecoder().decode(WhiskyWineVersion.self, from: data)
+                    continuation.resume(returning: remoteInfo.version)
+                } catch {
+                    print(error)
+                    continuation.resume(returning: nil)
+                }
+            }.resume()
         }
+    }
+
+    public static func shouldUpdateWhiskyWine() async -> (Bool, SemanticVersion) {
+        let localVersion = whiskyWineVersion()
+        let remoteVersion = await remoteWhiskyWineVersion()
 
         if let localVersion = localVersion, let remoteVersion = remoteVersion {
             if localVersion < remoteVersion {

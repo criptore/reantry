@@ -110,7 +110,7 @@ shared with the app.
 | `WhiskyCmd list` | Lists the bottles |
 | `WhiskyCmd config <bottle> [options]` | Prints the settings of a bottle, or changes them |
 | `WhiskyCmd exec <bottle> [--wait] -- <args...>` | Runs `wine <args>` in the bottle, streams the output and returns wine's exit status |
-| `WhiskyCmd run [--wait] <bottle> <exe> [args...]` | Runs a program: in Terminal, or with `--wait` attached to the command, returning the program's exit status |
+| `WhiskyCmd run [--wait] <bottle> <exe> [args...]` | Runs a program: in the background (prints the log file), or with `--wait` attached to the command, returning the program's exit status |
 | `WhiskyCmd logs [--last]` | Prints the logs folder, or the path and content of the newest log |
 | `WhiskyCmd add`, `remove`, `delete`, `shellenv` | Add, forget or delete a bottle, print `export` statements for a bottle |
 
@@ -127,8 +127,9 @@ WhiskyCmd logs --last | grep -E "Graphics Backend|WINEDLLOVERRIDES"
 ```
 
 `exec --wait` also waits for the other processes started in the bottle (`wineserver -w`). Options of
-`run` go before the bottle name, and everything after the program is passed to it
-(`WhiskyCmd run --wait test game.exe -windowed`). Failures are reported on stderr with exit status 1.
+`run` go before the bottle name, and everything after the bottle name is passed to the program, even
+arguments starting with a dash, without `--` (`WhiskyCmd run --wait test game.exe -windowed`). Without
+`--wait`, `run` starts the program detached from the terminal and prints the log that receives its output. Failures are reported on stderr with exit status 1.
 
 Log files are named after the time they were started, to the second. Two runs started within the same
 second share one log file, so `logs --last` can show both.
