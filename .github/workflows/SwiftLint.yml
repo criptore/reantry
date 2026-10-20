@@ -1,20 +1,21 @@
 name: SwiftLint
 
 concurrency:
-  group: pr-checks-${{ github.event.number }}
-  cancel-in-progress: true
+  group: swiftlint-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 on:
   pull_request:
   push:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   SwiftLint:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/realm/swiftlint:0.57.1
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: SwiftLint
-        uses: norio-nomura/action-swiftlint@3.2.1
-        with:
-          args: --strict
+        run: swiftlint lint --strict --reporter github-actions-logging
