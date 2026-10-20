@@ -29,7 +29,20 @@
 #
 # Environment overrides: CROSSOVER_VERSION, LLVM_MINGW_VERSION, LLVM_MINGW_SHA256,
 # MOLTENVK_VERSION, JOBS, EXTRA_CONFIGURE_ARGS (appended to configure),
-# WINE_LD_CLASSIC=1 (link with -ld_classic, needed by some older Xcode/Wine combinations).
+# WINE_LD_CLASSIC=1 (link with -ld_classic, needed by some older Xcode/Wine combinations),
+# DEPS_DIR (prebuilt x86_64 libraries instead of an x86_64 Homebrew, see below),
+# ARM_BREW_PREFIX (native Homebrew used for headers in DEPS_DIR mode, default /opt/homebrew).
+#
+# DEPS_DIR mode. DEPS_DIR holds the x86_64 dylibs (freetype, gnutls, gmp, SDL2 and their
+# dependencies) at its top level or in lib/. Configure also needs the GnuTLS and FreeType
+# headers: they come from pkg-config (DEPS_DIR/lib/pkgconfig, read by the x86_64 Homebrew's
+# pkg-config when there is one), from DEPS_DIR/include, or else from the native Homebrew
+# ("brew install gnutls freetype", headers only, they are the same for x86_64).
+#
+# The build stops after configure when include/config.h lacks SONAME_LIBGNUTLS or
+# SONAME_LIBFREETYPE: without GnuTLS, bcrypt has no ECDSA, the ECC root certificates are left
+# out of the root store and TLS fails in games. A build folder configured without them is
+# configured again on the next run.
 #
 # Recipe. Gcenx builds the macOS Wine packages with MacPorts, from the Portfiles in
 # https://github.com/Gcenx/macports-wine (emulators/wine-devel, emulators/wine-stable,
@@ -111,6 +124,9 @@ fi
 BREW_PREFIX="${BREW_PREFIX:-/usr/local}"
 BREW="$BREW_PREFIX/bin/brew"
 BREW_PACKAGES="bison flex pkgconf gettext freetype gnutls sdl2"
+# The native (arm64) Homebrew. In DEPS_DIR mode its GnuTLS and FreeType headers are used when
+# no x86_64 ones are available; nothing else is taken from it.
+ARM_BREW_PREFIX="${ARM_BREW_PREFIX:-/opt/homebrew}"
 
 WORK_DIR="${WORK_DIR:-$HOME/crossover-wine-build}"
 OUTPUT_DIR=""
@@ -272,6 +288,7 @@ SOURCE_ROOT="$VERSION_DIR/sources"
 BUILD="$VERSION_DIR/build"
 STAGE="$VERSION_DIR/stage"
 DEPS="$VERSION_DIR/deps"
+DEV_DIR="$VERSION_DIR/dev"
 TOOLCHAIN="$WORK_DIR/llvm-mingw-$LLVM_MINGW_VERSION"
 SOURCE_TARBALL="$DOWNLOADS/crossover-sources-$CROSSOVER_VERSION.tar.gz"
 
@@ -413,14 +430,17 @@ bundle_dylib() {
 }
 
 brew_dylib() {
-    local formula=$1 pattern=$2 prefix match
+    local formula=$1 pattern=$2 prefix match dirs
     if [ -n "${DEPS_DIR:-}" ]; then
-        match=$(find "$DEPS_DIR" -maxdepth 1 -name "$pattern" -type f | head -1)
+        # The libraries sit at the top of DEPS_DIR or in DEPS_DIR/lib.
+        dirs=("$DEPS_DIR")
+        [ -d "$DEPS_DIR/lib" ] && dirs+=("$DEPS_DIR/lib")
+        match=$(find "${dirs[@]}" -maxdepth 1 -name "$pattern" -type f | head -1)
         if [ -z "$match" ]; then
-            match=$(find "$DEPS_DIR" -maxdepth 1 -name "$pattern" | head -1)
+            match=$(find "${dirs[@]}" -maxdepth 1 -name "$pattern" | head -1)
         fi
         if [ -z "$match" ]; then
-            die "no $pattern in $DEPS_DIR"
+            die "no $pattern in $DEPS_DIR or $DEPS_DIR/lib"
         fi
         echo "$match"
         return 0
@@ -480,21 +500,138 @@ detect_runtime_names() {
     GMP_DYLIB=$(basename "$(brew_dylib gmp 'libgmp.[0-9]*.dylib')")
 }
 
+x86_64_file() {
+    file -bL "$1" 2>/dev/null | grep -q 'x86_64'
+}
+
+# The x86_64 pkg-config to use in DEPS_DIR mode, if any.
+setup_deps_pkg_config() {
+    local pc_path="" dir
+    for dir in "$DEPS_DIR/lib/pkgconfig" "$DEPS_DIR/share/pkgconfig"; do
+        [ -d "$dir" ] && pc_path="${pc_path:+$pc_path:}$dir"
+    done
+    if [ -x "$BREW_PREFIX/bin/pkg-config" ] && x86_64_file "$BREW_PREFIX/bin/pkg-config"; then
+        # The x86_64 Homebrew: its own .pc files are x86_64 too, keep its default search path.
+        export PKG_CONFIG="$BREW_PREFIX/bin/pkg-config"
+        export PKG_CONFIG_PATH="$pc_path"
+        log "pkg-config: $PKG_CONFIG${pc_path:+, with $pc_path}"
+    elif [ -n "$pc_path" ] && [ -x "$ARM_BREW_PREFIX/bin/pkg-config" ]; then
+        # Only the native Homebrew has a pkg-config. The program itself can be arm64, but it must
+        # never see the arm64 .pc files: limit it to DEPS_DIR.
+        export PKG_CONFIG="$ARM_BREW_PREFIX/bin/pkg-config"
+        export PKG_CONFIG_LIBDIR="$pc_path"
+        export PKG_CONFIG_PATH=""
+        log "pkg-config: $PKG_CONFIG, limited to $pc_path"
+    else
+        unset PKG_CONFIG PKG_CONFIG_PATH
+        log "pkg-config: none for x86_64, the development files are looked up directly"
+    fi
+    if [ -d "$DEPS_DIR/include" ]; then
+        CPPFLAGS="${CPPFLAGS:+$CPPFLAGS }-I$DEPS_DIR/include"
+    fi
+    if [ -d "$DEPS_DIR/lib" ]; then
+        LDFLAGS="$LDFLAGS -L$DEPS_DIR/lib"
+    fi
+}
+
+# In DEPS_DIR mode, makes sure configure finds the headers of a library Wine opens with dlopen()
+# and an x86_64 build of it to link its checks against. Configure only needs the headers and a
+# library to link with at build time: the library itself is bundled in lib/ and opened at run
+# time. When pkg-config does not know the library, the headers come from DEPS_DIR/include or,
+# failing that, from the native (arm64) Homebrew: the GnuTLS and FreeType headers are the same
+# for both architectures (the generated parts are version numbers and the iovec type, and
+# FreeType's ftconfig.h works out type sizes from compiler macros). The headers are copied into
+# $DEV_DIR/include so the build never adds /opt/homebrew/include to the search path, and
+# $DEV_DIR/lib gets a lib<name>.dylib link to the x86_64 library from DEPS_DIR. Configure takes
+# the result as <VAR>_CFLAGS and <VAR>_LIBS (AC_ARG_VAR in WINE_PACKAGE_FLAGS, which skips
+# pkg-config when they are set).
+#   provide_dev_files <VAR> <pkg-config name> <Homebrew formula> <header dir> <header file>
+#                     <-I suffix> <link name> <dylib pattern>
+provide_dev_files() {
+    local var=$1 pc=$2 formula=$3 subdir=$4 probe=$5 suffix=$6 link=$7 pattern=$8
+    local inc="" cand lib
+    if [ -n "${PKG_CONFIG:-}" ] && "$PKG_CONFIG" --exists "$pc" 2>/dev/null; then
+        log "$formula: found by pkg-config ($("$PKG_CONFIG" --modversion "$pc" 2>/dev/null || echo '?'))"
+        return 0
+    fi
+    if [ -f "$DEPS_DIR/include/$subdir/$probe" ]; then
+        inc="$DEPS_DIR/include"
+        log "$formula: headers from $inc/$subdir"
+    else
+        for cand in "$ARM_BREW_PREFIX/opt/$formula/include" "$ARM_BREW_PREFIX/include"; do
+            if [ -f "$cand/$subdir/$probe" ]; then
+                mkdir -p "$DEV_DIR/include"
+                rm -rf "${DEV_DIR:?}/include/$subdir"
+                cp -RL "$cand/$subdir" "$DEV_DIR/include/$subdir"
+                inc="$DEV_DIR/include"
+                log "$formula: headers copied from $cand/$subdir (native Homebrew, headers only)"
+                break
+            fi
+        done
+    fi
+    if [ -z "$inc" ]; then
+        die "no $formula headers for configure: pkg-config does not know '$pc', and there is no $subdir/$probe in $DEPS_DIR/include or in the native Homebrew ($ARM_BREW_PREFIX). Install them with
+    brew install $formula
+(the native Homebrew is fine, only its headers are used), or add include/ and lib/pkgconfig to DEPS_DIR, then run the script again."
+    fi
+    lib=$(brew_dylib "$formula" "$pattern")
+    if ! x86_64_file "$lib"; then
+        die "$lib is not an x86_64 library ($(file -bL "$lib")). DEPS_DIR must hold x86_64 libraries."
+    fi
+    mkdir -p "$DEV_DIR/lib"
+    ln -sf "$lib" "$DEV_DIR/lib/lib$link.dylib"
+    DEV_CONFIGURE_ARGS+=("${var}_CFLAGS=-I$inc$suffix" "${var}_LIBS=-L$DEV_DIR/lib -l$link")
+}
+
+config_has() {
+    [ -f "$BUILD/include/config.h" ] && grep -q "^#define $1 " "$BUILD/include/config.h"
+}
+
 configure_wine() {
     local args_file="$VERSION_DIR/configure.args" new_args_file="$VERSION_DIR/configure.args.new"
     printf '%s\n' "${CONFIGURE_ARGS[@]}" > "$new_args_file"
     if [ -f "$BUILD/Makefile" ] && [ -f "$args_file" ] && cmp -s "$args_file" "$new_args_file"; then
-        log "Already configured with the same options"
-        rm -f "$new_args_file"
-        return 0
+        if config_has SONAME_LIBGNUTLS && config_has SONAME_LIBFREETYPE; then
+            log "Already configured with the same options"
+            rm -f "$new_args_file"
+            return 0
+        fi
+        log "The existing build was configured without GnuTLS or FreeType, running configure again"
     fi
-    rm -rf "$BUILD"
+    # configure runs again in the existing build folder, so make only rebuilds what changed.
+    # --clean starts from an empty folder.
     mkdir -p "$BUILD"
+    rm -f "$args_file"
     log "configure ${CONFIGURE_ARGS[*]}"
     (cd "$BUILD" && "$WINE_SRC/configure" "${CONFIGURE_ARGS[@]}")
     mv "$new_args_file" "$args_file"
     log "Library names recorded by configure:"
     grep -E '#define SONAME_LIB' "$BUILD/include/config.h" || true
+}
+
+# Without SONAME_LIBGNUTLS, bcrypt, crypt32 and secur32 are built without GnuTLS: no ECDSA,
+# the ECC root certificates are dropped from the root store, and TLS fails in games. Without
+# SONAME_LIBFREETYPE there are no fonts. Stop rather than produce such a build.
+check_configure_result() {
+    local missing=""
+    config_has SONAME_LIBGNUTLS || missing="GnuTLS"
+    config_has SONAME_LIBFREETYPE || missing="${missing:+$missing and }FreeType"
+    [ -z "$missing" ] && return 0
+    local how
+    if [ -n "${DEPS_DIR:-}" ]; then
+        how="DEPS_DIR mode: configure needs the x86_64 libraries in DEPS_DIR and their headers.
+Provide them with either
+  - an x86_64 Homebrew: arch -x86_64 /usr/local/bin/brew install gnutls freetype pkgconf
+  - a DEPS_DIR with include/ (gnutls/gnutls.h, freetype2/ft2build.h) and lib/pkgconfig
+  - the native Homebrew headers: brew install gnutls freetype (used for the headers only)"
+    else
+        how="Install the x86_64 development files with:
+    arch -x86_64 $BREW install gnutls freetype pkgconf"
+    fi
+    die "configure did not find $missing: include/config.h in $BUILD has no SONAME_LIBGNUTLS or SONAME_LIBFREETYPE.
+See $BUILD/config.log (search for gnutls.h or ft2build.h) for the reason.
+$how
+Then run the script again: configure runs again and make only rebuilds what changed."
 }
 
 build_wine() {
@@ -659,22 +796,18 @@ if [ -x "$BREW" ]; then
     FLEX_PREFIX=$("$BREW" --prefix flex)
     GETTEXT_PREFIX=$("$BREW" --prefix gettext)
     export PATH="$BISON_PREFIX/bin:$FLEX_PREFIX/bin:$GETTEXT_PREFIX/bin:$BREW_PREFIX/bin:/usr/bin:/bin:/usr/sbin:/sbin:$TOOLCHAIN/bin"
-    if [ -z "${DEPS_DIR:-}" ]; then
-        export PKG_CONFIG="$BREW_PREFIX/bin/pkg-config"
-        export PKG_CONFIG_PATH="$BREW_PREFIX/lib/pkgconfig:$BREW_PREFIX/share/pkgconfig"
-    else
-        export PKG_CONFIG="/usr/bin/pkg-config"
-        export PKG_CONFIG_PATH=""
-    fi
+    export PKG_CONFIG="$BREW_PREFIX/bin/pkg-config"
+    export PKG_CONFIG_PATH="$BREW_PREFIX/lib/pkgconfig:$BREW_PREFIX/share/pkgconfig"
 else
     BISON_PREFIX=""
     FLEX_PREFIX=""
     GETTEXT_PREFIX=""
     export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$TOOLCHAIN/bin"
-    export PKG_CONFIG="/usr/bin/pkg-config"
-    export PKG_CONFIG_PATH=""
+    # macOS has no pkg-config of its own; DEPS_DIR mode picks one below.
+    unset PKG_CONFIG PKG_CONFIG_PATH
 fi
 unset PKG_CONFIG_LIBDIR CPATH LIBRARY_PATH DYLD_LIBRARY_PATH DYLD_FALLBACK_LIBRARY_PATH
+CPPFLAGS=""
 export MACOSX_DEPLOYMENT_TARGET="14.0"
 export CC="/usr/bin/clang"
 export CXX="/usr/bin/clang++"
@@ -684,7 +817,10 @@ LDFLAGS="-arch x86_64 -Wl,-headerpad_max_install_names"
 if [ "$WINE_LD_CLASSIC" = "1" ]; then
     LDFLAGS="-Wl,-ld_classic $LDFLAGS"
 fi
-export LDFLAGS
+if [ -n "${DEPS_DIR:-}" ]; then
+    setup_deps_pkg_config
+fi
+export CPPFLAGS LDFLAGS
 
 run_step download download_sources
 run_step extract extract_wine
@@ -696,6 +832,14 @@ apply_patches
 run_step "toolchain-$LLVM_MINGW_VERSION" install_toolchain
 run_step runtime-libraries prepare_runtime_libraries
 detect_runtime_names
+
+# DEPS_DIR mode: development files for the libraries configure must find (see
+# provide_dev_files). With Homebrew, pkg-config finds them in the x86_64 Homebrew.
+DEV_CONFIGURE_ARGS=()
+if [ -n "${DEPS_DIR:-}" ]; then
+    provide_dev_files GNUTLS gnutls gnutls gnutls gnutls.h "" gnutls 'libgnutls.[0-9]*.dylib'
+    provide_dev_files FREETYPE freetype2 freetype freetype2 ft2build.h /freetype2 freetype 'libfreetype.6.dylib'
+fi
 
 # shellcheck disable=SC2054 # the commas belong to --enable-archs
 CONFIGURE_ARGS=(
@@ -748,6 +892,7 @@ CONFIGURE_ARGS=(
     "ac_cv_lib_soname_SDL2=@rpath/$SDL2_DYLIB"
     "ac_cv_lib_soname_MoltenVK=@rpath/libMoltenVK.dylib"
     "ac_cv_lib_soname_vulkan="
+    ${DEV_CONFIGURE_ARGS[@]+"${DEV_CONFIGURE_ARGS[@]}"}
 )
 if [ -n "$EXTRA_CONFIGURE_ARGS" ]; then
     read -r -a extra_args <<< "$EXTRA_CONFIGURE_ARGS"
@@ -759,6 +904,7 @@ fi
 # staging folder (a few minutes) is redone so it always matches the build.
 log "==> configure"
 configure_wine
+check_configure_result
 log "==> build"
 build_wine
 log "==> install"
@@ -780,5 +926,9 @@ ditto "$STAGE" "$OUTPUT_DIR"
 
 log "Done: $OUTPUT_DIR"
 log "    $("$OUTPUT_DIR/bin/wine" --version 2>/dev/null || echo 'wine --version failed')"
+for soname in SONAME_LIBGNUTLS SONAME_LIBFREETYPE; do
+    value=$(sed -n "s/^#define $soname \(.*\)$/\1/p" "$BUILD/include/config.h")
+    log "    ${soname#SONAME_LIB}: ${value:-not found}"
+done
 log "Package it with:"
 log "    ./scripts/build_libraries.sh --engine crossover --wine-dir \"$OUTPUT_DIR\" [--gptk <Game Porting Toolkit>]"
