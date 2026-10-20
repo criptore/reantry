@@ -65,20 +65,22 @@ public class WhiskyWineInstaller {
                 // Clean up the extracted app bundle
                 let gcenxAppBundle = applicationFolder.appending(path: "Wine Staging.app")
                 try FileManager.default.removeItem(at: gcenxAppBundle)
+
+                // The Gcenx archive ships no WhiskyWineVersion.plist, write one so
+                // isWhiskyWineInstalled() returns true. Archives built as described
+                // in docs/Releasing.md already contain it.
+                let versionPlist = libraryFolder
+                    .appending(path: "WhiskyWineVersion")
+                    .appendingPathExtension("plist")
+                let versionInfo = WhiskyWineVersion(version: SemanticVersion(11, 2, 0))
+                let encoder = PropertyListEncoder()
+                encoder.outputFormat = .xml
+                let data = try encoder.encode(versionInfo)
+                try data.write(to: versionPlist)
+
+                // The patch offset only matches the Gcenx Wine Staging 11.2 winemac.so
+                applyOpenGLPatch()
             }
-
-            // Write WhiskyWineVersion.plist so isWhiskyWineInstalled() returns true
-            let versionPlist = libraryFolder
-                .appending(path: "WhiskyWineVersion")
-                .appendingPathExtension("plist")
-            let versionInfo = WhiskyWineVersion(version: SemanticVersion(11, 2, 0))
-            let encoder = PropertyListEncoder()
-            encoder.outputFormat = .xml
-            let data = try encoder.encode(versionInfo)
-            try data.write(to: versionPlist)
-
-            // Apply OpenGL patch to winemac.so
-            applyOpenGLPatch()
         } catch {
             print("Failed to install WhiskyWine: \(error)")
         }
@@ -134,12 +136,11 @@ public class WhiskyWineInstaller {
     }
 
     public static func shouldUpdateWhiskyWine() async -> (Bool, SemanticVersion) {
-        let versionPlistURL = "https://data.getwhisky.app/Wine/WhiskyWineVersion.plist"
         let localVersion = whiskyWineVersion()
 
         var remoteVersion: SemanticVersion?
 
-        if let remoteUrl = URL(string: versionPlistURL) {
+        if let remoteUrl = AppDistribution.librariesVersionURL {
             remoteVersion = await withCheckedContinuation { continuation in
                 URLSession(configuration: .ephemeral).dataTask(with: URLRequest(url: remoteUrl)) { data, _, error in
                     do {
