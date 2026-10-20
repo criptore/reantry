@@ -227,7 +227,7 @@ public class Wine {
     }
 
     /// Construct an environment merging the bottle values with the given values
-    private static func constructWineEnvironment(
+    static func constructWineEnvironment(
         for bottle: Bottle, environment: [String: String] = [:]
     ) -> [String: String] {
         var result: [String: String] = [
@@ -268,23 +268,6 @@ enum RegistryType: String {
     case dword = "REG_DWORD"
     case qword = "REG_QWORD"
     case string = "REG_SZ"
-}
-
-extension Wine {
-    public static let logsFolder = FileManager.default.urls(
-        for: .libraryDirectory, in: .userDomainMask
-    )[0].appending(path: "Logs").appending(path: Bundle.whiskyBundleIdentifier)
-
-    public static func makeFileHandle() throws -> FileHandle {
-        if !FileManager.default.fileExists(atPath: Self.logsFolder.path) {
-            try FileManager.default.createDirectory(at: Self.logsFolder, withIntermediateDirectories: true)
-        }
-
-        let dateString = Date.now.ISO8601Format()
-        let fileURL = Self.logsFolder.appending(path: dateString).appendingPathExtension("log")
-        try "".write(to: fileURL, atomically: true, encoding: .utf8)
-        return try FileHandle(forWritingTo: fileURL)
-    }
 }
 
 extension Wine {

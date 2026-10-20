@@ -61,34 +61,38 @@ extension Whisky {
         static let configuration = CommandConfiguration(
             abstract: "Run a program with Reantry.",
             discussion: """
-            Without --wait, the program is started in Terminal. With --wait, it runs attached to this command \
-            with the bottle's graphics backend, and the exit status of the program becomes the exit status of \
-            this command. Options go before the bottle, everything after the program is passed to it.
+            Without --wait, the program is started in the background and this command returns right away, \
+            printing the log file that receives its output. With --wait, it runs attached to this command, and \
+            the exit status of the program becomes the exit status of this command. Options go before the \
+            bottle, everything after the bottle is passed to the program, dashes included.
             Example: WhiskyCmd run --wait mybottle game.exe -windowed
             """
         )
 
-        @Flag(help: "Run the program in this process instead of Terminal, and wait for it to end.")
+        @Flag(help: "Keep the program attached to this command and wait for it to end.")
         var wait = false
 
         @Argument var bottleName: String
         @Argument var path: String
-        @Argument(parsing: .remaining, help: "Arguments for the program.") var args: [String] = []
+        @Argument(parsing: .captureForPassthrough, help: "Arguments for the program, dashes included.")
+        var args: [String] = []
 
         mutating func run() async throws {
             let bottle = try CLI.bottle(named: bottleName)
             let url = URL(fileURLWithPath: path)
             let program = Program(url: url, bottle: bottle)
 
-            guard wait else {
-                // Returning before the script ran would end the process and the script with it
-                await program.runInTerminalAndWait()
-                return
-            }
-
             try CLI.requireWine()
             try CLI.prepareGraphicsBackend(for: bottle)
             let savedArguments = program.settings.arguments.split { $0.isWhitespace }.map(String.init)
+
+            guard wait else {
+                let log = try Wine.launchDetached(
+                    at: url, args: savedArguments + args, bottle: bottle, environment: program.generateEnvironment()
+                )
+                Console.out("Started \(url.lastPathComponent), log: \(log.path(percentEncoded: false))")
+                return
+            }
             let status = try await CLI.streamWine(
                 args: [url.path(percentEncoded: false)] + savedArguments + args,
                 bottle: bottle,
