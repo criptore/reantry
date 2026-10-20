@@ -20,7 +20,7 @@ repository set in `AppDistribution.repository`
 Libraries/
 ├── Wine/                    # bin/, lib/, share/ (with gptk, bin/wine and bin/wine-preloader are symlinks)
 ├── DXVK/                    # x64/ and x32/ DLLs, copied into bottles using the DXVK backend
-├── WineD3D/                 # Wine's Direct3D DLLs replaced by D3DMetal, for the WineD3D backend (staging engine with --gptk only)
+├── WineD3D/                 # Wine's Direct3D DLLs replaced by D3DMetal, for the WineD3D backend (staging or crossover engine with --gptk only)
 ├── winetricks
 ├── verbs.txt
 └── WhiskyWineVersion.plist  # version dict: major, minor, patch, preRelease, build
@@ -32,7 +32,7 @@ version is higher, so it must increase every time the archive changes.
 
 ### Engines
 
-`scripts/build_libraries.sh` builds the archive with one of three Wine engines,
+`scripts/build_libraries.sh` builds the archive with one of four Wine engines,
 selected with `--engine`:
 
 | Engine | Source | Notes |
@@ -40,6 +40,7 @@ selected with `--engine`:
 | `gptk` (default) | [Gcenx/game-porting-toolkit](https://github.com/Gcenx/game-porting-toolkit) 3.0-3 | CrossOver based, D3DMetal included |
 | `staging` | [Gcenx/macOS_Wine_builds](https://github.com/Gcenx/macOS_Wine_builds) Wine Staging 11.18 | Upstream Wine, no D3DMetal unless merged with `--gptk` |
 | `sikarugir` | [Sikarugir-App/Engines](https://github.com/Sikarugir-App/Engines) `WS12WineSikarugir11.0_1` | Wine 11.0 (unified wow64) with macOS patches and DXMT's `winemetal.dll` |
+| `crossover` | Built locally from the [CrossOver sources](https://media.codeweavers.com/pub/crossover/source/) with `scripts/build_crossover_wine.sh`, passed with `--wine-dir` | CrossOver's Wine (macOS and Steam fixes), D3DMetal merged with `--gptk` |
 
 `gptk` is the default because it is CrossOver based and already includes
 D3DMetal (`lib/external/D3DMetal.framework`, `libd3dshared.dylib` and the
@@ -85,10 +86,11 @@ Mac test decides.
 | Wine (`gptk`) | [Gcenx/game-porting-toolkit](https://github.com/Gcenx/game-porting-toolkit) | Game Porting Toolkit 3.0-3 |
 | Wine (`staging`) | [Gcenx/macOS_Wine_builds](https://github.com/Gcenx/macOS_Wine_builds) | Wine Staging 11.18 |
 | Wine (`sikarugir`) | [Sikarugir-App/Engines](https://github.com/Sikarugir-App/Engines) | WS12WineSikarugir11.0_1 |
-| MoltenVK (`staging`) | [KhronosGroup/MoltenVK](https://github.com/KhronosGroup/MoltenVK) | v1.4.2 |
+| Wine (`crossover`) | Folder built by `scripts/build_crossover_wine.sh` | newest CrossOver sources |
+| MoltenVK (`staging`, `crossover`) | [KhronosGroup/MoltenVK](https://github.com/KhronosGroup/MoltenVK) | v1.4.2 |
 | DXVK | [Gcenx/DXVK-macOS](https://github.com/Gcenx/DXVK-macOS) | v1.10.3-20230507 (async) |
 | winetricks | [Winetricks/winetricks](https://github.com/Winetricks/winetricks) | 20260125 |
-| D3DMetal (`staging` only) | Apple Game Porting Toolkit (optional) | none |
+| D3DMetal (`staging` and `crossover`) | Apple Game Porting Toolkit (optional) | none |
 
 ```bash
 # Default: Game Porting Toolkit 3.0-3 (D3DMetal included)
@@ -103,6 +105,10 @@ Mac test decides.
 # Wine Staging with D3DMetal, from the mounted Game Porting Toolkit DMG
 ./scripts/build_libraries.sh --engine staging --gptk "/Volumes/Evaluation environment for Windows games 3.0"
 
+# Wine built from the CrossOver sources (see below), with D3DMetal
+./scripts/build_libraries.sh --engine crossover --wine-dir build/crossover-wine-26.3.0 \
+    --gptk "/Volumes/Evaluation environment for Windows games 3.0"
+
 # Build and upload to the "libraries" release (needs `gh auth login`)
 ./scripts/build_libraries.sh --publish
 ```
@@ -110,6 +116,117 @@ Mac test decides.
 Versions can be overridden with `GPTK_VERSION`, `SIKARUGIR_ENGINE`, `WINE_VERSION`, `WINE_FLAVOR`
 (`staging` or `devel`), `DXVK_VERSION`, `MOLTENVK_VERSION` and
 `WINETRICKS_VERSION`. The output is written to `build/`, which is ignored by git.
+
+### Building Wine from the CrossOver sources
+
+CodeWeavers publishes the source of every CrossOver release at
+https://media.codeweavers.com/pub/crossover/source/ as
+`crossover-sources-<version>.tar.gz`. The archive contains a `wine/` folder,
+CrossOver's Wine tree with the macOS and Steam (CEF) fixes that upstream Wine
+and the Gcenx builds lack, next to other projects that are not used here.
+`scripts/build_crossover_wine.sh` builds that `wine/` folder on a Mac and
+produces a self-contained Wine folder for the `crossover` engine.
+
+Why: with Gcenx's upstream Wine Staging 11.18 the 64-bit Steam client starts but
+`steamwebhelper`'s login window stays black whatever the Direct3D path (wined3d
+on GL or Vulkan, DXVK, software, virtual desktop): CEF never presents into its
+window. The Wine of Game Porting Toolkit 3.0-3 (`wine-7.7`) is too old for the
+current Steam client, and the Sikarugir engine starts nothing outside its own
+wrapper. CrossOver supports Steam on macOS officially.
+
+**Prerequisites**
+
+- An Apple Silicon Mac (Intel works too) on macOS 14 or later, with Rosetta 2
+  (`softwareupdate --install-rosetta --agree-to-license`).
+- The Xcode Command Line Tools (`xcode-select --install`).
+- An x86_64 Homebrew in `/usr/local`, next to the native one in `/opt/homebrew`:
+  `arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`.
+  Wine's Unix side runs as x86_64 under Rosetta 2, so the libraries it loads
+  (FreeType, GnuTLS, SDL2) must be x86_64; the arm64 Homebrew cannot provide
+  them. The script installs `bison flex pkgconf gettext freetype gnutls sdl2`
+  with it.
+- About 15 GB of free disk space in the work folder (`~/crossover-wine-build` by
+  default: source archive, extracted tree, llvm-mingw, build objects) plus about
+  1.5 GB for the result.
+- Time: 30 to 90 minutes, mostly `make`, which runs under Rosetta 2. The
+  Homebrew step takes longer when bottles are missing and formulae are built
+  from source.
+
+**Recipe.** It follows Gcenx's MacPorts Portfiles
+([macports-wine](https://github.com/Gcenx/macports-wine), `emulators/wine-devel`,
+`emulators/wine-stable`, `cross/llvm-mingw`) and the configure options listed in
+the [macOS_Wine_builds](https://github.com/Gcenx/macOS_Wine_builds) README:
+wow64 with `--enable-archs=i386,x86_64 --enable-win64`, PE files built with
+llvm-mingw (`--with-mingw=<llvm-mingw>/bin/clang`, same release as the Portfile),
+`MACOSX_DEPLOYMENT_TARGET=14.0`, `--disable-tests`, CoreAudio, CUPS, FreeType,
+GnuTLS, OpenCL, PCSC, pcap, SDL2 and Vulkan (MoltenVK) on, X11, Wayland,
+fontconfig, D-Bus, Kerberos, GStreamer and FFmpeg off, and `make install-lib`.
+CrossOver's `winedbg` needs a `distversion.h` that is generated by CodeWeavers'
+build system and missing from the archive, so the script writes one.
+
+The libraries are copied into `lib/` with `@rpath` install names, configure
+records `@rpath/<name>` for the libraries Wine opens with `dlopen()`, and every
+Unix module gets an `LC_RPATH` to `lib/`. The script then checks with `otool -L`
+that no binary refers to `/usr/local`, `/opt/homebrew` or `/opt/local`, and runs
+`wine --version`, `wineboot --init` in a temporary prefix and `cmd /c ver` (64
+and 32-bit) with `DYLD_FALLBACK_LIBRARY_PATH=/usr/lib`, so Homebrew's libraries
+cannot be picked up by accident. wine-mono and wine-gecko, in the versions the
+tree asks for, are bundled into `share/wine` (skip with `--no-addons`).
+
+**Running it**
+
+```bash
+# Newest CrossOver version listed on the CodeWeavers server
+./scripts/build_crossover_wine.sh
+
+# A given version
+CROSSOVER_VERSION=25.1.1 ./scripts/build_crossover_wine.sh
+```
+
+The log goes to `~/crossover-wine-build/build.log`. When a step fails, the
+script prints the failed command; fix the cause and run it again: finished
+steps (download, extraction, toolchain, libraries, configure with the same
+options) are skipped and `make` continues where it stopped. `--clean` starts the
+version over. When the listing cannot be read, the script falls back to
+`CROSSOVER_FALLBACK_VERSION` in the script; check that this version still
+exists on the server before relying on it. The result is written to
+`build/crossover-wine-<version>/` (`bin/wine`, `bin/wineserver`, `lib/`, `share/`).
+
+Then package it, with D3DMetal from the Game Porting Toolkit DMG:
+
+```bash
+./scripts/build_libraries.sh --engine crossover --wine-dir build/crossover-wine-<version> \
+    --gptk "/Volumes/Evaluation environment for Windows games 3.0"
+```
+
+**Testing Steam.** Install the archive with `WhiskyCmd`, then install and
+start Steam in a new bottle:
+
+```bash
+CLI=./WhiskyCmd   # path to the built WhiskyCmd binary
+$CLI wine install --file build/Libraries.tar.gz
+$CLI create steam-test --windows win10
+curl -fLo SteamSetup.exe https://cdn.cloudflare.steamstatic.com/client/installer/SteamSetup.exe
+$CLI run --wait steam-test SteamSetup.exe /S
+$CLI list         # shows the path of the steam-test bottle
+$CLI run steam-test "<bottle path>/drive_c/Program Files (x86)/Steam/steam.exe"
+```
+
+Steam updates itself first, then opens the login window. It works when the
+login window shows the QR code and the fields instead of a black rectangle. Try
+each graphics backend (`$CLI config steam-test --backend d3dmetal|dxvk|wined3d`).
+If the window stays black, start Steam with `-cef-disable-gpu` to tell a CEF
+GPU problem apart from a presentation problem, and keep the `steamwebhelper`
+lines of the log (`$CLI logs --last`).
+
+**Licence.** The Wine part of the CrossOver sources is free software under the
+GNU LGPL 2.1 or later, like upstream Wine; the script copies `COPYING.LIB`,
+`LICENSE` and `AUTHORS` into `share/doc/wine/` with a `SOURCE.txt` that names
+the source archive. When publishing an archive built from it, keep those files
+and keep the matching source available (the CodeWeavers URL in `SOURCE.txt`).
+Other folders of the source archive have their own licences and are not used.
+CrossOver itself (the app, its bottle management and its D3DMetal copy) is
+commercial and is not part of this build.
 
 ### Version scheme
 
@@ -141,8 +258,8 @@ Known points to check:
   only a title and states no licence, and the repository declares none. Wine
   itself is LGPL 2.1, but check the licences of the macOS patches and of DXMT
   with the Sikarugir authors before publishing an archive built from it.
-- **Steam.** Check that Steam's window renders (no black CEF UI) with the
-  `gptk` engine.
+- **Steam.** Check that Steam's window renders (no black CEF UI), see
+  "Testing Steam" above; the `crossover` engine is the candidate for it.
 - **OpenGL 3.2+ patch.** The `winemac.so` patch that let SDL3 games create
   OpenGL 3.2+ contexts used a byte offset specific to the Gcenx 11.2 build,
   which Gcenx no longer hosts, so it is no longer applied. Check whether
