@@ -4,13 +4,16 @@ set -euo pipefail
 # Build Libraries.tar.gz, the Wine libraries downloaded by the setup wizard.
 #
 # Usage:
-#   ./scripts/build_libraries.sh [--engine gptk|staging] [--gptk <path>] [--version X.Y.Z] [--publish]
+#   ./scripts/build_libraries.sh [--engine gptk|staging|sikarugir] [--gptk <path>] [--version X.Y.Z] [--publish]
 #
 #   --engine <name>  Wine build to package. Defaults to gptk.
 #                    gptk:    Gcenx's Game Porting Toolkit build (CrossOver based, D3DMetal
 #                             included). Version set with GPTK_VERSION (default 3.0-3).
 #                    staging: Gcenx's Wine Staging build, optionally merged with Apple's
 #                             D3DMetal through --gptk.
+#                    sikarugir: Sikarugir's WS12WineSikarugir Wine 11.0 (unified wow64, macOS
+#                             patches, DXMT's winemetal.dll). Version set with SIKARUGIR_ENGINE
+#                             (default WS12WineSikarugir11.0_1).
 #   --gptk <path>    staging engine only. Game Porting Toolkit to bundle D3DMetal from:
 #                    the mounted DMG
 #                    (e.g. "/Volumes/Evaluation environment for Windows games 3.0")
@@ -27,6 +30,7 @@ set -euo pipefail
 #   WINE_VERSION=11.19 ./scripts/build_libraries.sh
 
 GPTK_VERSION="${GPTK_VERSION:-3.0-3}"
+SIKARUGIR_ENGINE="${SIKARUGIR_ENGINE:-WS12WineSikarugir11.0_1}"
 WINE_VERSION="${WINE_VERSION:-11.18}"
 WINE_FLAVOR="${WINE_FLAVOR:-staging}" # staging or devel
 DXVK_VERSION="${DXVK_VERSION:-v1.10.3-20230507-repack}"
@@ -64,11 +68,16 @@ while [ $# -gt 0 ]; do
 done
 
 case "$ENGINE" in
-    gptk|staging) ;;
-    *) echo "Error: --engine must be gptk or staging, got '$ENGINE'"; exit 1 ;;
+    gptk|staging|sikarugir) ;;
+    *) echo "Error: --engine must be gptk, staging or sikarugir, got '$ENGINE'"; exit 1 ;;
 esac
 if [ "$ENGINE" = "gptk" ] && [ -n "$GPTK_PATH" ]; then
     echo "Error: --gptk is not needed with --engine gptk, D3DMetal is already included."
+    echo "       Use --engine staging to merge Apple's Game Porting Toolkit into Wine Staging."
+    exit 1
+fi
+if [ "$ENGINE" = "sikarugir" ] && [ -n "$GPTK_PATH" ]; then
+    echo "Error: --gptk cannot be used with --engine sikarugir, it ships its own DXMT based graphics."
     echo "       Use --engine staging to merge Apple's Game Porting Toolkit into Wine Staging."
     exit 1
 fi
@@ -99,6 +108,9 @@ echo "==> Downloading components"
 if [ "$ENGINE" = "gptk" ]; then
     download "https://github.com/Gcenx/game-porting-toolkit/releases/download/Game-Porting-Toolkit-$GPTK_VERSION/game-porting-toolkit-$GPTK_VERSION.tar.xz" \
         "$DOWNLOADS/wine.tar.xz"
+elif [ "$ENGINE" = "sikarugir" ]; then
+    download "https://github.com/Sikarugir-App/Engines/releases/download/v1.0/$SIKARUGIR_ENGINE.tar.xz" \
+        "$DOWNLOADS/wine.tar.xz"
 else
     download "https://github.com/Gcenx/macOS_Wine_builds/releases/download/$WINE_VERSION/wine-$WINE_FLAVOR-$WINE_VERSION-osx64.tar.xz" \
         "$DOWNLOADS/wine.tar.xz"
@@ -115,11 +127,19 @@ chmod +x "$LIBRARIES/winetricks"
 
 if [ "$ENGINE" = "gptk" ]; then
     echo "==> Installing Game Porting Toolkit $GPTK_VERSION"
+elif [ "$ENGINE" = "sikarugir" ]; then
+    echo "==> Installing Sikarugir engine $SIKARUGIR_ENGINE"
 else
     echo "==> Installing Wine $WINE_FLAVOR $WINE_VERSION"
 fi
 tar -xf "$DOWNLOADS/wine.tar.xz" -C "$BUILD_DIR/extract"
-WINE_ROOT=$(find "$BUILD_DIR/extract" -maxdepth 4 -type d -path "*.app/Contents/Resources/wine" | head -1)
+if [ "$ENGINE" = "sikarugir" ]; then
+    # Layout: wswine.bundle/{bin,lib,share,version,dxmt_extescape}. version and dxmt_extescape
+    # stay inside Libraries/Wine.
+    WINE_ROOT=$(find "$BUILD_DIR/extract" -maxdepth 3 -type d -name "wswine.bundle" | head -1)
+else
+    WINE_ROOT=$(find "$BUILD_DIR/extract" -maxdepth 4 -type d -path "*.app/Contents/Resources/wine" | head -1)
+fi
 if [ -z "$WINE_ROOT" ]; then
     echo "Error: wine folder not found in the Wine archive"
     exit 1
@@ -135,8 +155,22 @@ if [ "$ENGINE" = "gptk" ]; then
         fi
         ln -s wine64 "$LIBRARIES/Wine/bin/wine"
     fi
+    # Started as "wine", the loader looks for wine-preloader. Without it new prefixes get an
+    # empty syswow64 and 32-bit programs fail.
+    if [ ! -e "$LIBRARIES/Wine/bin/wine-preloader" ]; then
+        if [ ! -e "$LIBRARIES/Wine/bin/wine64-preloader" ]; then
+            echo "Error: neither bin/wine-preloader nor bin/wine64-preloader found in the archive"
+            exit 1
+        fi
+        ln -s wine64-preloader "$LIBRARIES/Wine/bin/wine-preloader"
+    fi
     if [ ! -d "$LIBRARIES/Wine/lib/external/D3DMetal.framework" ]; then
         echo "Error: D3DMetal.framework not found in the archive"
+        exit 1
+    fi
+elif [ "$ENGINE" = "sikarugir" ]; then
+    if [ ! -x "$LIBRARIES/Wine/bin/wine" ] || [ ! -e "$LIBRARIES/Wine/bin/wineserver" ]; then
+        echo "Error: bin/wine or bin/wineserver not found in the Sikarugir archive"
         exit 1
     fi
 else
@@ -152,8 +186,10 @@ cp -R "$BUILD_DIR/extract/dxvk-macOS-async-$DXVK_VERSION/x64" "$LIBRARIES/DXVK/x
 cp -R "$BUILD_DIR/extract/dxvk-macOS-async-$DXVK_VERSION/x32" "$LIBRARIES/DXVK/x32"
 
 if [ "$ENGINE" = "gptk" ]; then
-    echo "==> Note: no WineD3D folder is built. The original wined3d DLLs are not in the"
-    echo "    archive, so the WineD3D backend uses D3DMetal's builtin DLLs with this engine."
+    echo "==> Note: no WineD3D folder is built, the original wined3d DLLs are not in the archive."
+    echo "    The WineD3D backend uses D3DMetal's builtin DLLs with this engine."
+elif [ "$ENGINE" = "sikarugir" ]; then
+    echo "==> Note: no WineD3D folder is built with the sikarugir engine."
 elif [ -n "$GPTK_PATH" ]; then
     if [ -d "$GPTK_PATH/redist/lib" ]; then
         REDIST="$GPTK_PATH/redist/lib"
@@ -228,6 +264,8 @@ rm -rf "$BUILD_DIR"
 echo "==> Done: $OUTPUT_DIR/Libraries.tar.gz (version $LIBRARIES_VERSION)"
 if [ "$ENGINE" = "gptk" ]; then
     echo "    Game Porting Toolkit $GPTK_VERSION (D3DMetal included), DXVK $DXVK_VERSION, winetricks $WINETRICKS_VERSION"
+elif [ "$ENGINE" = "sikarugir" ]; then
+    echo "    Sikarugir engine $SIKARUGIR_ENGINE (DXMT included), DXVK $DXVK_VERSION, winetricks $WINETRICKS_VERSION"
 else
     echo "    Wine $WINE_FLAVOR $WINE_VERSION, DXVK $DXVK_VERSION, MoltenVK $MOLTENVK_VERSION, winetricks $WINETRICKS_VERSION"
 fi
