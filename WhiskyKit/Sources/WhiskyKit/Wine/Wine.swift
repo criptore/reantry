@@ -218,7 +218,11 @@ public class Wine {
 
     public static func killBottle(bottle: Bottle) throws {
         Task.detached(priority: .userInitiated) {
-            try await runWineserver(["-k"], bottle: bottle)
+            do {
+                try await runWineserver(["-k"], bottle: bottle)
+            } catch {
+                Logger.wineKit.error("Failed to kill the bottle \(bottle.settings.name): \(error)")
+            }
         }
     }
 
