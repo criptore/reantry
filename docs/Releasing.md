@@ -212,6 +212,17 @@ build time; Wine opens the bundled x86_64 library with `dlopen()` at run time.
 Use headers of the same GnuTLS major version as the library (3.x for
 `libgnutls.30.dylib`).
 
+Without an x86_64 Homebrew, the build tools come from the native Homebrew
+too: Wine needs bison 3.0 or newer and Apple's `/usr/bin/bison` is 2.3. The
+script puts `/opt/homebrew/opt/bison/bin` and `/opt/homebrew/opt/flex/bin`
+(under `ARM_BREW_PREFIX`) first in `PATH` when they exist, and stops before
+the build when `bison --version` is older than 3. So for this mode install,
+with the native Homebrew:
+
+```bash
+brew install bison flex gnutls freetype
+```
+
 The libraries are copied into `lib/` with `@rpath` install names, configure
 records `@rpath/<name>` for the libraries Wine opens with `dlopen()`, and every
 Unix module gets an `LC_RPATH` to `lib/`. The script then checks with `otool -L`
@@ -230,8 +241,9 @@ tree asks for, are bundled into `share/wine` (skip with `--no-addons`).
 # A given version
 CROSSOVER_VERSION=25.1.1 ./scripts/build_crossover_wine.sh
 
-# Without an x86_64 Homebrew: prebuilt x86_64 libraries, headers from the native Homebrew
-brew install gnutls freetype
+# Without an x86_64 Homebrew: prebuilt x86_64 libraries, headers and bison/flex from the
+# native Homebrew
+brew install bison flex gnutls freetype
 DEPS_DIR=/path/to/x86_64-libs CROSSOVER_VERSION=26.3.0 ./scripts/build_crossover_wine.sh
 ```
 

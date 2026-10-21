@@ -37,7 +37,9 @@
 # dependencies) at its top level or in lib/. Configure also needs the GnuTLS and FreeType
 # headers: they come from pkg-config (DEPS_DIR/lib/pkgconfig, read by the x86_64 Homebrew's
 # pkg-config when there is one), from DEPS_DIR/include, or else from the native Homebrew
-# ("brew install gnutls freetype", headers only, they are the same for x86_64).
+# ("brew install gnutls freetype", headers only, they are the same for x86_64). Without an
+# x86_64 Homebrew, bison (3.0 or newer, Apple's is 2.3) and flex also come from the native
+# Homebrew: "brew install bison flex gnutls freetype".
 #
 # The build stops after configure when include/config.h lacks SONAME_LIBGNUTLS or
 # SONAME_LIBFREETYPE: without GnuTLS, bcrypt has no ECDSA, the ECC root certificates are left
@@ -799,13 +801,32 @@ if [ -x "$BREW" ]; then
     export PKG_CONFIG="$BREW_PREFIX/bin/pkg-config"
     export PKG_CONFIG_PATH="$BREW_PREFIX/lib/pkgconfig:$BREW_PREFIX/share/pkgconfig"
 else
+    # DEPS_DIR mode without an x86_64 Homebrew. Apple's /usr/bin/bison is 2.3 and Wine needs
+    # 3.0 or newer: take bison and flex from the native Homebrew (build tools only, they never
+    # end up in the result, and an arm64 bison runs fine from this x86_64 shell).
     BISON_PREFIX=""
     FLEX_PREFIX=""
     GETTEXT_PREFIX=""
-    export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$TOOLCHAIN/bin"
+    native_tools=""
+    for dir in "$ARM_BREW_PREFIX/opt/bison/bin" "$ARM_BREW_PREFIX/opt/flex/bin"; do
+        [ -d "$dir" ] && native_tools="$native_tools$dir:"
+    done
+    export PATH="$native_tools/usr/bin:/bin:/usr/sbin:/sbin:$TOOLCHAIN/bin"
     # macOS has no pkg-config of its own; DEPS_DIR mode picks one below.
     unset PKG_CONFIG PKG_CONFIG_PATH
 fi
+bison_major=$(bison --version 2>/dev/null | sed -n '1s/.* \([0-9][0-9]*\)\.[0-9][0-9.]*$/\1/p')
+if [ -z "$bison_major" ] || [ "$bison_major" -lt 3 ]; then
+    if [ -x "$BREW" ]; then
+        bison_fix="$BREW install bison flex"
+    else
+        bison_fix="brew install bison flex   (the native Homebrew is fine, they are only build tools)"
+    fi
+    die "Wine needs bison 3.0 or newer, found $(command -v bison || echo 'no bison') ($(bison --version 2>/dev/null | head -1 || true)). Install it with
+    $bison_fix
+then run the script again."
+fi
+log "bison: $(command -v bison) ($(bison --version | head -1)), flex: $(command -v flex || echo none)"
 unset PKG_CONFIG_LIBDIR CPATH LIBRARY_PATH DYLD_LIBRARY_PATH DYLD_FALLBACK_LIBRARY_PATH
 CPPFLAGS=""
 export MACOSX_DEPLOYMENT_TARGET="14.0"
