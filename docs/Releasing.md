@@ -62,7 +62,11 @@ a Mac: with the link `syswow64` gets 717 files and 32-bit `cmd.exe` runs.
 **GPTK 3.0-3 and Steam.** The Wine inside Game Porting Toolkit 3.0-3 reports
 `wine-7.7 (Game Porting Toolkit 1.1)`. It is too old for the current 64-bit
 Steam client, which crashes on a missing `DeleteFileTransactedW`. Use the
-`sikarugir` engine when Steam is needed.
+`crossover` engine when Steam is needed: it is the engine tested with Steam,
+built from the CrossOver 26.3 sources with the `steamwebhelper` patch and
+GnuTLS (see "Building Wine from the CrossOver sources" below), packaged with
+D3DMetal through `--gptk`. Steam and the DirectX 11 game SPAM run with it on
+macOS 27.
 
 With `gptk` the script skips the MoltenVK replacement (MoltenVK is inside
 `lib/GStreamer.framework`) and rejects `--gptk`, since D3DMetal is already
@@ -76,8 +80,12 @@ patches and DXMT's `winemetal.dll`. The script moves the whole bundle to
 `Libraries/Wine`, so `version` and `dxmt_extescape` stay next to `bin`. No
 symlinks are needed and MoltenVK is not replaced. `--gptk` is rejected, and
 there is no `WineD3D` folder. The engine version is set with `SIKARUGIR_ENGINE`
-(default `WS12WineSikarugir11.0_1`). The default engine stays `gptk` until the
-Mac test decides.
+(default `WS12WineSikarugir11.0_1`).
+
+The Mac test has passed with `crossover` and D3DMetal, but the default engine
+stays `gptk` until prebuilt `crossover` libraries are published: the
+`crossover` engine needs a Wine folder built locally with
+`scripts/build_crossover_wine.sh`.
 
 ### Building
 
@@ -158,7 +166,10 @@ wrapper. CrossOver supports Steam on macOS officially.
 `emulators/wine-stable`, `cross/llvm-mingw`) and the configure options listed in
 the [macOS_Wine_builds](https://github.com/Gcenx/macOS_Wine_builds) README:
 wow64 with `--enable-archs=i386,x86_64 --enable-win64`, PE files built with
-llvm-mingw (`--with-mingw=<llvm-mingw>/bin/clang`, same release as the Portfile),
+llvm-mingw (`--with-mingw=llvm-mingw`, which makes configure use
+`x86_64-w64-mingw32-clang` and `i686-w64-mingw32-clang` from the toolchain's
+`bin/`, placed last in `PATH` so Apple's `clang` builds the Unix side; same
+release as the Portfile),
 `MACOSX_DEPLOYMENT_TARGET=14.0`, `--disable-tests`, CoreAudio, CUPS, FreeType,
 GnuTLS, OpenCL, PCSC, pcap, SDL2 and Vulkan (MoltenVK) on, X11, Wayland,
 fontconfig, D-Bus, Kerberos, GStreamer and FFmpeg off, and `make install-lib`.
@@ -348,7 +359,8 @@ Known points to check:
   itself is LGPL 2.1, but check the licences of the macOS patches and of DXMT
   with the Sikarugir authors before publishing an archive built from it.
 - **Steam.** Check that Steam's window renders (no black CEF UI), see
-  "Testing Steam" above; the `crossover` engine is the candidate for it.
+  "Testing Steam" above; the `crossover` engine with D3DMetal is the one
+  tested with Steam.
 - **OpenGL 3.2+ patch.** The `winemac.so` patch that let SDL3 games create
   OpenGL 3.2+ contexts used a byte offset specific to the Gcenx 11.2 build,
   which Gcenx no longer hosts, so it is no longer applied. Check whether
