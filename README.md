@@ -47,6 +47,14 @@ Reantry is a native SwiftUI wrapper for Wine on macOS. Run Windows games and app
 
 No manual Wine installation, no terminal commands, no patching required.
 
+> **Note (Gatekeeper):** the downloaded app is ad-hoc signed, so macOS may say
+> it is "damaged". If so, run in Terminal:
+> ```bash
+> xattr -cr /Applications/Whisky.app
+> codesign --force --deep --sign - /Applications/Whisky.app
+> ```
+> (The bundle is still named `Whisky.app`.)
+
 ### Method 2: Build from source
 
 One command does everything — clones the repo, installs dependencies, builds the app, and launches it:
