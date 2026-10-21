@@ -88,7 +88,8 @@ extension Whisky {
 
             guard wait else {
                 let log = try Wine.launchDetached(
-                    at: url, args: savedArguments + args, bottle: bottle, environment: program.generateEnvironment()
+                    at: url, args: savedArguments + args, bottle: bottle,
+                    environment: CLI.wineEnvironment(program.generateEnvironment())
                 )
                 Console.out("Started \(url.lastPathComponent), log: \(log.path(percentEncoded: false))")
                 return

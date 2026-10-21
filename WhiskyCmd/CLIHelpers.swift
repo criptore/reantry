@@ -139,6 +139,17 @@ enum CLI {
         }
     }
 
+    /// The given environment, plus the variables of this command's own environment that must reach wine.
+    /// Wine only gets the environment it is given, so a `WINEDEBUG` set by the caller would otherwise be
+    /// replaced by the default one.
+    static func wineEnvironment(_ environment: [String: String] = [:]) -> [String: String] {
+        var result = environment
+        if let debug = ProcessInfo.processInfo.environment["WINEDEBUG"] {
+            result["WINEDEBUG"] = debug
+        }
+        return result
+    }
+
     /// Runs wine in the bottle, streaming its output, and returns its exit status.
     /// A crash is reported as 128 plus the signal, like a shell does.
     static func streamWine(
@@ -146,7 +157,7 @@ enum CLI {
     ) async throws -> Int32 {
         var status: Int32 = 0
         for await output in try Wine.runWineProcess(
-            args: args, bottle: bottle, environment: environment, directory: directory
+            args: args, bottle: bottle, environment: wineEnvironment(environment), directory: directory
         ) {
             switch output {
             case .started:
