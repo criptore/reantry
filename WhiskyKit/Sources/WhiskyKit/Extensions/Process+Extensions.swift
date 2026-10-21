@@ -84,15 +84,28 @@ public extension Process {
         }
     }
 
+    /// Forwards what the process left in the pipe, without waiting for the end of the pipe.
+    ///
+    /// Processes started by the process, such as the programs a `wineboot` starts, inherit the pipe and keep it
+    /// open after the process ended, so waiting for the end of the pipe would wait for them too. What they write
+    /// afterwards is read and dropped, so that they never block on a full pipe or write to a closed one.
     private static func drainPipe(
         _ pipe: Pipe,
         as kind: PipeKind,
         continuation: AsyncStream<ProcessOutput>.Continuation,
         fileHandle: FileHandle?
     ) {
-        guard let remaining = try? pipe.fileHandleForReading.readToEnd(),
-              let text = String(data: remaining, encoding: .utf8),
-              !text.isEmpty else { return }
+        let reading = pipe.fileHandleForReading
+        reading.readabilityHandler = nil
+        let remaining = readWithoutWaiting(from: reading.fileDescriptor)
+        // Holding the handle keeps the pipe open for them, until they all closed it
+        reading.readabilityHandler = { _ in
+            if reading.availableData.isEmpty {
+                reading.readabilityHandler = nil
+            }
+        }
+
+        guard let text = String(data: remaining, encoding: .utf8), !text.isEmpty else { return }
 
         switch kind {
         case .message:
@@ -150,6 +163,21 @@ public extension Process {
 private enum PipeKind {
     case message
     case error
+}
+
+/// Reads the data that is already in a pipe, stopping as soon as reading more would wait.
+private func readWithoutWaiting(from fileDescriptor: Int32) -> Data {
+    let bufferSize = 16_384
+    var buffer = [UInt8](repeating: 0, count: bufferSize)
+    var data = Data()
+    var descriptor = pollfd(fd: fileDescriptor, events: Int16(POLLIN), revents: 0)
+    // `poll` also reports the end of the pipe as readable, then `read` returns 0
+    while poll(&descriptor, 1, 0) > 0 {
+        let count = read(fileDescriptor, &buffer, bufferSize)
+        guard count > 0 else { break }
+        data.append(contentsOf: buffer[0..<count])
+    }
+    return data
 }
 
 extension FileHandle {
