@@ -73,7 +73,7 @@ fi
 echo "==> Build succeeded: $APP_PATH"
 
 # --- Step 5: Install to /Applications ---
-INSTALL_PATH="/Applications/Moonshine.app"
+INSTALL_PATH="/Applications/Reantry.app"
 if [ -d "$INSTALL_PATH" ]; then
     echo "==> Removing previous installation..."
     rm -rf "$INSTALL_PATH"
@@ -86,9 +86,9 @@ cp -R "$APP_PATH" "$INSTALL_PATH"
 rm -rf "$BUILD_DIR"
 
 # --- Step 7: Launch ---
-echo "==> Launching Moonshine.app..."
+echo "==> Launching Reantry.app..."
 open "$INSTALL_PATH"
 
 echo ""
-echo "==> Done! Moonshine.app is installed and running."
+echo "==> Done! Reantry.app is installed and running."
 echo "    The setup wizard will download and install Wine."
