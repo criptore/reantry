@@ -1,9 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
     <channel>
-        <title>Moonshine</title>
+        <title>Reantry</title>
         <link>https://raw.githubusercontent.com/criptore/reantry/main/appcast.xml</link>
-        <description>Moonshine updates</description>
+        <description>Reantry updates</description>
         <language>en</language>
+        <item>
+            <title>Version 0.3.2</title>
+            <sparkle:version>44</sparkle:version>
+            <sparkle:shortVersionString>0.3.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/criptore/reantry/releases/download/v0.3.3/Reantry.app.zip"
+                       length="5777509"
+                       type="application/octet-stream"
+                       sparkle:edSignature="4YdwhiqCUny2KASXBOG24YAQxKL6HDBeeiOBRl6RLsLMs0kaDSanMjkaHJqR0dR29Cf4yG6cYz+Bz/kw+r0ZDA==" />
+        </item>
     </channel>
 </rss>
