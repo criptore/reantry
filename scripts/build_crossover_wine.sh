@@ -19,7 +19,8 @@
 #                          ~/crossover-wine-build, about 15 GB). Kept between runs so an
 #                          interrupted build resumes where it stopped.
 #   --output <path>        Final Wine folder (default build/crossover-wine-<version> in the
-#                          repository).
+#                          repository). Replaced at the end, so it must be missing, empty or
+#                          an earlier result of this script (with share/doc/wine/SOURCE.txt).
 #   --jobs <n>             Parallel make jobs (default: number of CPUs).
 #   --skip-tests           Do not run wine --version, wineboot --init and cmd /c ver at the end.
 #   --no-addons            Do not bundle wine-mono and wine-gecko into share/wine.
@@ -288,6 +289,19 @@ if [ -z "$OUTPUT_DIR" ]; then
 fi
 mkdir -p "$(dirname "$OUTPUT_DIR")"
 OUTPUT_DIR="$(cd "$(dirname "$OUTPUT_DIR")" && pwd)/$(basename "$OUTPUT_DIR")"
+
+# The output folder is deleted and replaced at the end. Only do that to an empty folder or to
+# an earlier result of this script, recognised by the share/doc/wine/SOURCE.txt it writes.
+check_output_dir() {
+    if [ -e "$OUTPUT_DIR" ] && [ ! -d "$OUTPUT_DIR" ]; then
+        die "--output $OUTPUT_DIR exists and is not a folder"
+    fi
+    if [ -d "$OUTPUT_DIR" ] && [ -n "$(ls -A "$OUTPUT_DIR")" ] \
+        && [ ! -f "$OUTPUT_DIR/share/doc/wine/SOURCE.txt" ]; then
+        die "--output $OUTPUT_DIR is not empty and is not a folder built by this script (no share/doc/wine/SOURCE.txt). It would be deleted: choose another folder, or empty it first."
+    fi
+}
+check_output_dir
 
 DOWNLOADS="$WORK_DIR/downloads"
 VERSION_DIR="$WORK_DIR/crossover-$CROSSOVER_VERSION"
@@ -962,6 +976,7 @@ if [ "$RUN_TESTS" -eq 1 ]; then
 fi
 
 log "Copying the result to $OUTPUT_DIR"
+check_output_dir
 rm -rf "$OUTPUT_DIR"
 ditto "$STAGE" "$OUTPUT_DIR"
 
