@@ -1,0 +1,1066 @@
+#!/usr/bin/env bash
+# Build Wine from the CodeWeavers CrossOver sources for macOS (wow64, x86_64 + i386 PE).
+#
+# The result is a folder with bin/wine, bin/wineserver, lib/ and share/ that runs without
+# Homebrew and can be used as Libraries/Wine, for instance with
+#   ./scripts/build_libraries.sh --engine crossover --wine-dir <output folder>
+#
+# Runs on an Apple Silicon (or Intel) Mac with the Xcode Command Line Tools, Rosetta 2 and an
+# x86_64 Homebrew in /usr/local, or prebuilt x86_64 libraries in DEPS_DIR (see below). It must
+# be run on macOS: nothing here works on Linux.
+#
+# Usage:
+#   ./scripts/build_crossover_wine.sh [options]
+#
+#   --crossover <version>  CrossOver version to build, e.g. 25.1.1. Same as CROSSOVER_VERSION.
+#                          Default: the newest crossover-sources-*.tar.gz listed on
+#                          https://media.codeweavers.com/pub/crossover/source/, or
+#                          CROSSOVER_FALLBACK_VERSION when the listing cannot be read.
+#   --work-dir <path>      Where sources, toolchain and build files go (default
+#                          ~/crossover-wine-build, about 15 GB). Kept between runs so an
+#                          interrupted build resumes where it stopped.
+#   --output <path>        Final Wine folder (default build/crossover-wine-<version> in the
+#                          repository). Replaced at the end, so it must be missing, empty or
+#                          an earlier result of this script (with share/doc/wine/SOURCE.txt).
+#   --jobs <n>             Parallel make jobs (default: number of CPUs).
+#   --skip-tests           Do not run wine --version, wineboot --init and cmd /c ver at the end.
+#   --no-addons            Do not bundle wine-mono and wine-gecko into share/wine.
+#   --clean                Delete the build state of this version and start over (downloads
+#                          are kept).
+#   -h, --help             Show this help.
+#
+# Environment overrides: CROSSOVER_VERSION, LLVM_MINGW_VERSION, LLVM_MINGW_SHA256,
+# MOLTENVK_VERSION, JOBS, EXTRA_CONFIGURE_ARGS (appended to configure),
+# WINE_LD_CLASSIC=1 (link with -ld_classic, needed by some older Xcode/Wine combinations),
+# DEPS_DIR (prebuilt x86_64 libraries instead of an x86_64 Homebrew, see below),
+# ARM_BREW_PREFIX (native Homebrew used for headers in DEPS_DIR mode, default /opt/homebrew).
+#
+# DEPS_DIR mode. DEPS_DIR holds the x86_64 dylibs (freetype, gnutls, gmp, SDL2 and their
+# dependencies) at its top level or in lib/. Configure also needs the GnuTLS and FreeType
+# headers: they come from pkg-config (DEPS_DIR/lib/pkgconfig, read by the x86_64 Homebrew's
+# pkg-config when there is one), from DEPS_DIR/include, or else from the native Homebrew
+# ("brew install gnutls freetype", headers only, they are the same for x86_64). Without an
+# x86_64 Homebrew, bison (3.0 or newer, Apple's is 2.3) and flex also come from the native
+# Homebrew: "brew install bison flex gnutls freetype".
+#
+# The build stops after configure when include/config.h lacks SONAME_LIBGNUTLS or
+# SONAME_LIBFREETYPE: without GnuTLS, bcrypt has no ECDSA, the ECC root certificates are left
+# out of the root store and TLS fails in games. A build folder configured without them is
+# configured again on the next run.
+#
+# Recipe. Gcenx builds the macOS Wine packages with MacPorts, from the Portfiles in
+# https://github.com/Gcenx/macports-wine (emulators/wine-devel, emulators/wine-stable,
+# cross/llvm-mingw) and lists the configure options in the README of
+# https://github.com/Gcenx/macOS_Wine_builds. This script follows them:
+#   - PE side compiled with llvm-mingw (macOS universal release, same version as the
+#     cross/llvm-mingw Portfile), wow64 with --enable-archs=i386,x86_64 (plus --enable-win64).
+#   - Unix side compiled with Apple clang for x86_64, MACOSX_DEPLOYMENT_TARGET=14.0 (the
+#     Portfiles use 14.0 on current macOS), CROSSCFLAGS=-O2, "make install-lib" (runtime only).
+#   - The --with/--without options of the README, with these differences:
+#       --with-mingw=llvm-mingw instead of the MacPorts path to llvm-mingw's clang: configure
+#         then runs x86_64-w64-mingw32-clang and i686-w64-mingw32-clang, found in the
+#         toolchain's bin/, which comes last in PATH so Apple's clang builds the Unix side;
+#       --without-ffmpeg and --without-gstreamer (the Portfiles only enable them with the
+#         +gstreamer variant through GStreamer.framework, Steam does not need them);
+#       --without-inotify (libinotify comes from Gcenx's MacPorts overlay, Homebrew has no
+#         macOS build of it);
+#       --without-gettext (no msgfmt needed, Wine's translations are not built);
+#       --prefix pointing at the staging folder, and ac_cv_lib_soname_* values so configure
+#         records @rpath names for the bundled libraries (see below).
+#   - CrossOver specific: its winedbg includes "distversion.h", a header generated by the
+#     CrossOver build system and missing from the source tarball. The script writes it (the
+#     game-porting-toolkit Portfile avoids the problem with --disable-winedbg instead).
+#   - The patches in scripts/patches/crossover are applied to the extracted tree, in sorted
+#     order. kernelbase-steamwebhelper-in-process-gpu.patch appends three flags,
+#     --no-sandbox --in-process-gpu --disable-gpu, to the command line of the main
+#     steamwebhelper.exe process (the one without --type=). CrossOver adds --in-process-gpu in
+#     closed code: without it Steam's CEF window stays black.
+#
+# Libraries come from an x86_64 Homebrew in /usr/local (run through "arch -x86_64"), not from
+# the native /opt/homebrew: Wine's Unix side is an x86_64 process under Rosetta 2, so every
+# library it loads (FreeType, GnuTLS and its dependencies, SDL2) must be x86_64 too, and the
+# arm64 Homebrew only has arm64 bottles. MacPorts, which Gcenx uses, would need a separate
+# x86_64 installation in the same way.
+#
+# Wine opens these libraries with dlopen() by the name configure recorded (SONAME_LIB* in
+# include/config.h). The script copies them to lib/, gives them @rpath install names, makes
+# configure record "@rpath/<name>" and adds an LC_RPATH pointing at lib/ to every Unix module,
+# so the folder works anywhere without DYLD_* variables and without Homebrew.
+
+set -Eeuo pipefail
+
+# Wine's Unix side is x86_64. Re-run the whole script under Rosetta 2 so clang, configure,
+# make, brew and the tests all run as x86_64. Under Rosetta, uname -m prints x86_64.
+if [ "$(uname -s)" != "Darwin" ]; then
+    echo "Error: this script must run on macOS." >&2
+    exit 1
+fi
+if [ "$(uname -m)" = "arm64" ]; then
+    if ! arch -x86_64 /usr/bin/true 2>/dev/null; then
+        echo "Error: Rosetta 2 is not installed. Install it with:" >&2
+        echo "    softwareupdate --install-rosetta --agree-to-license" >&2
+        exit 1
+    fi
+    exec arch -x86_64 /bin/bash "$0" "$@"
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
+CROSSOVER_SOURCE_URL="https://media.codeweavers.com/pub/crossover/source"
+# Used when the directory listing above cannot be read. It must be checked by hand against
+# that listing before relying on it: CodeWeavers publishes crossover-sources-<version>.tar.gz
+# for every release (26.3.0 is the CrossOver version in Gcenx's macports-wine crossover Portfile
+# at the time of writing).
+CROSSOVER_FALLBACK_VERSION="26.3.0"
+CROSSOVER_VERSION="${CROSSOVER_VERSION:-}"
+
+# Same version and checksum as cross/llvm-mingw in Gcenx/macports-wine.
+LLVM_MINGW_VERSION="${LLVM_MINGW_VERSION:-20260826}"
+if [ "$LLVM_MINGW_VERSION" = "20260826" ]; then
+    LLVM_MINGW_SHA256="${LLVM_MINGW_SHA256:-48bedd161f14ae25a3646cb750b57ee3188e97e34bd3c52240c1810aa74d6a7f}"
+else
+    LLVM_MINGW_SHA256="${LLVM_MINGW_SHA256:-}"
+fi
+MOLTENVK_VERSION="${MOLTENVK_VERSION:-v1.4.2}"
+JOBS="${JOBS:-$(sysctl -n hw.ncpu)}"
+EXTRA_CONFIGURE_ARGS="${EXTRA_CONFIGURE_ARGS:-}"
+WINE_LD_CLASSIC="${WINE_LD_CLASSIC:-0}"
+
+BREW_PREFIX="${BREW_PREFIX:-}"
+if [ -z "$BREW_PREFIX" ]; then
+    for cand in /usr/local "$HOME/homebrew"; do
+        if [ -x "$cand/bin/brew" ]; then BREW_PREFIX="$cand"; break; fi
+    done
+fi
+BREW_PREFIX="${BREW_PREFIX:-/usr/local}"
+BREW="$BREW_PREFIX/bin/brew"
+BREW_PACKAGES="bison flex pkgconf gettext freetype gnutls sdl2"
+# The native (arm64) Homebrew. In DEPS_DIR mode its GnuTLS and FreeType headers are used when
+# no x86_64 ones are available; nothing else is taken from it.
+ARM_BREW_PREFIX="${ARM_BREW_PREFIX:-/opt/homebrew}"
+# DEPS_DIR as it appears in compiler flags (set by setup_deps_pkg_config).
+DEPS_FLAGS_DIR=""
+
+WORK_DIR="${WORK_DIR:-$HOME/crossover-wine-build}"
+OUTPUT_DIR=""
+RUN_TESTS=1
+WITH_ADDONS=1
+CLEAN=0
+
+usage() {
+    sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'
+}
+
+require_value() {
+    if [ $# -lt 2 ] || [ -z "$2" ]; then
+        echo "Error: $1 needs a value" >&2
+        exit 1
+    fi
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --crossover) require_value "$@"; CROSSOVER_VERSION="$2"; shift 2 ;;
+        --work-dir) require_value "$@"; WORK_DIR="$2"; shift 2 ;;
+        --output) require_value "$@"; OUTPUT_DIR="$2"; shift 2 ;;
+        --jobs) require_value "$@"; JOBS="$2"; shift 2 ;;
+        --skip-tests) RUN_TESTS=0; shift ;;
+        --no-addons) WITH_ADDONS=0; shift ;;
+        --clean) CLEAN=1; shift ;;
+        -h|--help) usage; exit 0 ;;
+        *) echo "Unknown option: $1 (see --help)" >&2; exit 1 ;;
+    esac
+done
+
+mkdir -p "$WORK_DIR"
+WORK_DIR="$(cd "$WORK_DIR" && pwd)"
+LOG="$WORK_DIR/build.log"
+exec > >(tee -a "$LOG") 2>&1
+
+log() {
+    echo "[$(date '+%H:%M:%S')] $*"
+}
+
+die() {
+    echo "" >&2
+    echo "Error: $*" >&2
+    echo "Full log: $LOG" >&2
+    exit 1
+}
+
+on_error() {
+    local status=$1 line=$2 command=$3
+    echo "" >&2
+    echo "Error: command failed with status $status at line $line:" >&2
+    echo "    $command" >&2
+    echo "Full log: $LOG. Run the script again to resume from the failed step." >&2
+}
+trap 'on_error $? $LINENO "$BASH_COMMAND"' ERR
+
+# Runs a step once. A stamp file marks it as done so a later run skips it.
+run_step() {
+    local name=$1
+    shift
+    if [ -f "$STAMPS/$name" ]; then
+        log "Skipping $name (already done)"
+        return 0
+    fi
+    log "==> $name"
+    "$@"
+    touch "$STAMPS/$name"
+}
+
+download() {
+    local url=$1 dest=$2
+    if [ -f "$dest" ]; then
+        return 0
+    fi
+    log "Downloading $url"
+    curl -fL --retry 3 -C - --progress-bar -o "$dest.part" "$url" \
+        || die "download failed: $url"
+    mv "$dest.part" "$dest"
+}
+
+check_sha256() {
+    local file=$1 expected=$2 actual
+    if [ -z "$expected" ]; then
+        return 0
+    fi
+    actual=$(shasum -a 256 "$file" | awk '{print $1}')
+    if [ "$actual" != "$expected" ]; then
+        rm -f "$file"
+        die "checksum mismatch for $file (expected $expected, got $actual). The file was deleted, run again to download it."
+    fi
+}
+
+is_macho() {
+    file -b "$1" 2>/dev/null | grep -q 'Mach-O'
+}
+
+# ---------------------------------------------------------------------------
+# Checks
+# ---------------------------------------------------------------------------
+
+log "Reantry CrossOver Wine build, log in $LOG"
+log "Running as $(uname -m) (translated by Rosetta: $(sysctl -in sysctl.proc_translated 2>/dev/null || echo 0)), macOS $(sw_vers -productVersion)"
+
+if ! xcode-select -p >/dev/null 2>&1; then
+    die "the Xcode Command Line Tools are missing. Install them with: xcode-select --install"
+fi
+if ! clang --version >/dev/null 2>&1; then
+    die "clang does not run. Install or repair the Xcode Command Line Tools: xcode-select --install"
+fi
+if [ -z "${DEPS_DIR:-}" ] && [ ! -x "$BREW" ]; then
+    die "no x86_64 Homebrew in $BREW_PREFIX and DEPS_DIR is not set. Install an x86_64 Homebrew next to the native one with:
+    arch -x86_64 /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"
+or point DEPS_DIR at a folder holding the x86_64 runtime libraries (freetype, gnutls, gmp, SDL2 and their dependencies)."
+fi
+
+if [ -n "${DEPS_DIR:-}" ]; then
+    [ -d "$DEPS_DIR" ] || die "DEPS_DIR is not a folder: $DEPS_DIR"
+    # Absolute, so the runtime-libraries stamp names the same folder whatever the current folder.
+    DEPS_DIR="$(cd "$DEPS_DIR" && pwd)"
+fi
+# Autoconf refuses a source or build folder whose path has a space ("unsafe srcdir value"), and
+# the build, the sources and --prefix all live in WORK_DIR. DEPS_DIR may have spaces: the paths
+# passed to configure go through a link in the work folder (see setup_deps_pkg_config).
+case "$WORK_DIR" in
+    *[[:space:]]*) die "the work folder must not contain spaces, configure refuses it: $WORK_DIR. Choose another one with --work-dir." ;;
+esac
+
+if [ -z "$LLVM_MINGW_SHA256" ]; then
+    log "Warning: no checksum for llvm-mingw $LLVM_MINGW_VERSION (only the default version has one built in), the download is not verified. Set LLVM_MINGW_SHA256 to check it."
+fi
+
+free_gb=$(df -g "$WORK_DIR" | awk 'NR==2 {print $4}')
+if [ -n "$free_gb" ] && [ "$free_gb" -lt 20 ]; then
+    log "Warning: only ${free_gb} GB free in $WORK_DIR, the build needs about 15 GB."
+fi
+
+# ---------------------------------------------------------------------------
+# CrossOver version
+# ---------------------------------------------------------------------------
+
+latest_crossover_version() {
+    # The page is a plain directory listing. Keep release versions only (no betas) and sort
+    # them numerically, field by field, since BSD sort has no -V on older macOS.
+    curl -fsSL --max-time 30 "$CROSSOVER_SOURCE_URL/" 2>/dev/null \
+        | grep -oE 'crossover-sources-[0-9]+(\.[0-9]+)+\.tar\.gz' \
+        | sed -e 's/^crossover-sources-//' -e 's/\.tar\.gz$//' \
+        | sort -u -t. -k1,1n -k2,2n -k3,3n \
+        | tail -1
+}
+
+if [ -z "$CROSSOVER_VERSION" ]; then
+    log "Looking for the newest CrossOver sources on $CROSSOVER_SOURCE_URL/"
+    CROSSOVER_VERSION="$(latest_crossover_version || true)"
+    if [ -z "$CROSSOVER_VERSION" ]; then
+        CROSSOVER_VERSION="$CROSSOVER_FALLBACK_VERSION"
+        log "Could not read the listing, using the fallback version $CROSSOVER_VERSION"
+    fi
+fi
+if ! [[ "$CROSSOVER_VERSION" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
+    die "CrossOver version must look like 25.1.1, got '$CROSSOVER_VERSION'"
+fi
+log "CrossOver version: $CROSSOVER_VERSION"
+
+if [ -z "$OUTPUT_DIR" ]; then
+    OUTPUT_DIR="$PROJECT_DIR/build/crossover-wine-$CROSSOVER_VERSION"
+fi
+mkdir -p "$(dirname "$OUTPUT_DIR")"
+OUTPUT_DIR="$(cd "$(dirname "$OUTPUT_DIR")" && pwd)/$(basename "$OUTPUT_DIR")"
+
+# The output folder is deleted and replaced at the end. Only do that to an empty folder or to
+# an earlier result of this script, recognised by the share/doc/wine/SOURCE.txt it writes.
+check_output_dir() {
+    if [ -e "$OUTPUT_DIR" ] && [ ! -d "$OUTPUT_DIR" ]; then
+        die "--output $OUTPUT_DIR exists and is not a folder"
+    fi
+    if [ -d "$OUTPUT_DIR" ] && [ -n "$(ls -A "$OUTPUT_DIR")" ] \
+        && [ ! -f "$OUTPUT_DIR/share/doc/wine/SOURCE.txt" ]; then
+        die "--output $OUTPUT_DIR is not empty and is not a folder built by this script (no share/doc/wine/SOURCE.txt). It would be deleted: choose another folder, or empty it first."
+    fi
+}
+check_output_dir
+
+DOWNLOADS="$WORK_DIR/downloads"
+VERSION_DIR="$WORK_DIR/crossover-$CROSSOVER_VERSION"
+STAMPS="$VERSION_DIR/stamps"
+SOURCE_ROOT="$VERSION_DIR/sources"
+BUILD="$VERSION_DIR/build"
+STAGE="$VERSION_DIR/stage"
+DEPS="$VERSION_DIR/deps"
+DEV_DIR="$VERSION_DIR/dev"
+TOOLCHAIN="$WORK_DIR/llvm-mingw-$LLVM_MINGW_VERSION"
+SOURCE_TARBALL="$DOWNLOADS/crossover-sources-$CROSSOVER_VERSION.tar.gz"
+
+if [ "$CLEAN" -eq 1 ]; then
+    log "Removing $VERSION_DIR"
+    rm -rf "$VERSION_DIR"
+fi
+mkdir -p "$DOWNLOADS" "$STAMPS"
+
+# ---------------------------------------------------------------------------
+# Steps
+# ---------------------------------------------------------------------------
+
+install_dependencies() {
+    if [ -n "${DEPS_DIR:-}" ]; then
+        log "Using prebuilt runtime libraries from $DEPS_DIR, skipping Homebrew install"
+        return 0
+    fi
+    local package
+    for package in $BREW_PACKAGES; do
+        if "$BREW" list --versions "$package" >/dev/null 2>&1; then
+            log "Homebrew (x86_64): $package already installed"
+        else
+            log "Homebrew (x86_64): installing $package"
+            "$BREW" install "$package"
+        fi
+    done
+}
+
+download_sources() {
+    download "$CROSSOVER_SOURCE_URL/crossover-sources-$CROSSOVER_VERSION.tar.gz" "$SOURCE_TARBALL"
+    log "Checking the archive"
+    gzip -t "$SOURCE_TARBALL" || {
+        rm -f "$SOURCE_TARBALL"
+        die "the CrossOver source archive is corrupt and was deleted. Run the script again."
+    }
+}
+
+extract_wine() {
+    local listing wine_path
+    listing="$VERSION_DIR/sources.list"
+    tar -tzf "$SOURCE_TARBALL" > "$listing"
+    # The archive holds several projects next to each other; only the wine/ tree is built.
+    wine_path=$(grep -E '(^|/)wine/configure\.ac$' "$listing" | awk '{print length, $0}' | sort -n | head -1 | cut -d' ' -f2-)
+    if [ -z "$wine_path" ]; then
+        die "no wine/configure.ac in $SOURCE_TARBALL"
+    fi
+    wine_path="${wine_path%/configure.ac}"
+    log "Extracting $wine_path"
+    rm -rf "$SOURCE_ROOT"
+    mkdir -p "$SOURCE_ROOT"
+    tar -xzf "$SOURCE_TARBALL" -C "$SOURCE_ROOT" "$wine_path"
+    echo "$wine_path" > "$VERSION_DIR/wine_path"
+}
+
+prepare_sources() {
+    # CrossOver's winedbg includes a header generated by CodeWeavers' build system.
+    if grep -rqs 'distversion.h' "$WINE_SRC/programs/winedbg" && [ ! -f "$WINE_SRC/include/distversion.h" ]; then
+        log "Writing include/distversion.h for winedbg"
+        cat > "$WINE_SRC/include/distversion.h" <<'EOF'
+/* Generated by scripts/build_crossover_wine.sh: this header is created by the CrossOver build
+ * system and is not part of the source archive. */
+#define WINDEBUG_WHAT_HAPPENED_MESSAGE "This can be caused by a problem in the program or a deficiency in Wine."
+#define WINDEBUG_USER_SUGGESTION_MESSAGE "If this problem is not present under Windows, save the detailed information to a file with Save As and attach it to a bug report."
+EOF
+    fi
+    if [ ! -x "$WINE_SRC/configure" ]; then
+        log "No configure script in the archive, generating it with autoreconf"
+        "$BREW" list --versions autoconf >/dev/null 2>&1 || "$BREW" install autoconf
+        (cd "$WINE_SRC" && "$BREW_PREFIX/bin/autoreconf" -fi)
+    fi
+}
+
+# Applies scripts/patches/crossover/*.patch (unified diffs relative to the wine/ folder) in
+# sorted order. Runs on every build: a patch that is already in the tree is skipped, so an
+# extracted tree from an earlier run gets the patches added since then.
+apply_patches() {
+    local patch_dir="$SCRIPT_DIR/patches/crossover" file name
+    [ -d "$patch_dir" ] || return 0
+    while IFS= read -r file; do
+        name=$(basename "$file")
+        if patch -p1 -d "$WINE_SRC" -R -s -f --dry-run -i "$file" >/dev/null 2>&1; then
+            log "Patch $name: already applied"
+        elif patch -p1 -d "$WINE_SRC" -s -f --dry-run -i "$file" >/dev/null 2>&1; then
+            log "Patch $name: applying"
+            patch -p1 -d "$WINE_SRC" -s -f -i "$file"
+        else
+            die "patch $name applies neither forward nor in reverse to $WINE_SRC. It was made for another CrossOver version: update it, or remove it from $patch_dir."
+        fi
+    done < <(find "$patch_dir" -maxdepth 1 -type f -name '*.patch' | LC_ALL=C sort)
+}
+
+install_toolchain() {
+    local name="llvm-mingw-$LLVM_MINGW_VERSION-ucrt-macos-universal"
+    local archive="$DOWNLOADS/$name.tar.xz"
+    download "https://github.com/mstorsjo/llvm-mingw/releases/download/$LLVM_MINGW_VERSION/$name.tar.xz" "$archive"
+    check_sha256 "$archive" "$LLVM_MINGW_SHA256"
+    rm -rf "$TOOLCHAIN" "${WORK_DIR:?}/$name"
+    tar -xJf "$archive" -C "$WORK_DIR"
+    mv "$WORK_DIR/$name" "$TOOLCHAIN"
+    "$TOOLCHAIN/bin/clang" --version | head -1
+}
+
+# The libraries a Mach-O file links to, one full path per line. otool -L indents them and
+# appends "(compatibility version ...)"; a universal file also has a header line per
+# architecture, which is left out. The first entry of a dylib is its own install name.
+otool_deps() {
+    otool -L "$1" | sed -n 's/^[[:space:]]\{1,\}\(.*\) (compatibility version.*$/\1/p'
+}
+
+# Copies a Homebrew dylib and, recursively, the Homebrew dylibs it links to into $DEPS/lib.
+# Each copy gets the install name @rpath/<name> and refers to its siblings through
+# @loader_path/<name>, so the set works from any folder.
+bundle_dylib() {
+    local source=$1 name dest deps dep dep_name dep_source
+    name=$(basename "$source")
+    dest="$DEPS/lib/$name"
+    if [ -f "$dest" ]; then
+        return 0
+    fi
+    cp -L "$source" "$dest"
+    chmod u+w "$dest"
+    install_name_tool -id "@rpath/$name" "$dest" 2>/dev/null
+    # One dependency per line, read whole: a DEPS_DIR path can contain spaces.
+    deps=$(otool_deps "$dest")
+    while IFS= read -r dep; do
+        [ -n "$dep" ] || continue
+        dep_name=$(basename "$dep")
+        if [ "$dep_name" = "$name" ]; then
+            continue
+        fi
+        if [ -n "${DEPS_DIR:-}" ] && [[ "$dep" == "$DEPS_DIR"/* ]]; then
+            # A prebuilt library that refers to its siblings by their absolute DEPS_DIR path.
+            dep_source="$dep"
+        else
+            case "$dep" in
+                "$BREW_PREFIX"/*|/opt/homebrew/*)
+                    dep_source="$dep"
+                    ;;
+                @rpath/*|@loader_path/*|@executable_path/*)
+                    dep_source="$(dirname "$source")/$dep_name"
+                    ;;
+                *)
+                    # System libraries (/usr/lib, /System). Anything else is caught by
+                    # verify_linkage.
+                    continue
+                    ;;
+            esac
+        fi
+        if [ ! -f "$dep_source" ]; then
+            die "$name needs $dep, which was not found"
+        fi
+        install_name_tool -change "$dep" "@loader_path/$dep_name" "$dest" 2>/dev/null
+        bundle_dylib "$dep_source"
+    done <<< "$deps"
+}
+
+brew_dylib() {
+    local formula=$1 pattern=$2 prefix match dirs
+    if [ -n "${DEPS_DIR:-}" ]; then
+        # The libraries sit at the top of DEPS_DIR or in DEPS_DIR/lib.
+        dirs=("$DEPS_DIR")
+        [ -d "$DEPS_DIR/lib" ] && dirs+=("$DEPS_DIR/lib")
+        match=$(find "${dirs[@]}" -maxdepth 1 -name "$pattern" -type f | head -1)
+        if [ -z "$match" ]; then
+            match=$(find "${dirs[@]}" -maxdepth 1 -name "$pattern" | head -1)
+        fi
+        if [ -z "$match" ]; then
+            die "no $pattern in $DEPS_DIR or $DEPS_DIR/lib"
+        fi
+        echo "$match"
+        return 0
+    fi
+    prefix=$("$BREW" --prefix "$formula")
+    match=$(find "$prefix/lib" -maxdepth 1 -name "$pattern" -type f | head -1)
+    if [ -z "$match" ]; then
+        match=$(find "$prefix/lib" -maxdepth 1 -name "$pattern" | head -1)
+    fi
+    if [ -z "$match" ]; then
+        die "no $pattern in $prefix/lib (Homebrew formula $formula)"
+    fi
+    echo "$match"
+}
+
+# Runtime libraries Wine opens with dlopen(), set by detect_runtime_names from $DEPS/lib.
+FREETYPE_DYLIB=""
+GNUTLS_DYLIB=""
+GMP_DYLIB=""
+SDL2_DYLIB=""
+BUNDLED_NAME=""
+
+prepare_runtime_libraries() {
+    local freetype gnutls gmp sdl2 moltenvk_archive
+    rm -rf "$DEPS"
+    mkdir -p "$DEPS/lib"
+    freetype=$(brew_dylib freetype 'libfreetype.6.dylib')
+    gnutls=$(brew_dylib gnutls 'libgnutls.[0-9]*.dylib')
+    gmp=$(brew_dylib gmp 'libgmp.[0-9]*.dylib')
+    sdl2=$(brew_dylib sdl2 'libSDL2-2.0.0.dylib')
+    local lib
+    for lib in "$freetype" "$gnutls" "$gmp" "$sdl2"; do
+        log "Bundling $(basename "$lib") and its dependencies"
+        bundle_dylib "$lib"
+    done
+
+    # MoltenVK from the Khronos release (universal, same version as build_libraries.sh uses for
+    # the staging engine). Wine opens it directly when no Vulkan loader is configured.
+    moltenvk_archive="$DOWNLOADS/MoltenVK-$MOLTENVK_VERSION-macos.tar"
+    download "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar" "$moltenvk_archive"
+    rm -rf "$DEPS/moltenvk"
+    mkdir -p "$DEPS/moltenvk"
+    tar -xf "$moltenvk_archive" -C "$DEPS/moltenvk"
+    cp "$DEPS/moltenvk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" "$DEPS/lib/libMoltenVK.dylib"
+    chmod u+w "$DEPS/lib/libMoltenVK.dylib"
+    install_name_tool -id "@rpath/libMoltenVK.dylib" "$DEPS/lib/libMoltenVK.dylib" 2>/dev/null
+    rm -rf "$DEPS/moltenvk"
+
+    local dylib
+    for dylib in "$DEPS"/lib/*.dylib; do
+        codesign --force --sign - "$dylib" 2>/dev/null
+    done
+    ls -1 "$DEPS/lib"
+}
+
+# The names configure records for dlopen(), read from the bundled copies in $DEPS/lib so they
+# always match what finish_install copies into lib/.
+bundled_name() {
+    local pattern=$1 match
+    match=$(find "$DEPS/lib" -maxdepth 1 -name "$pattern" | head -1)
+    if [ -z "$match" ]; then
+        die "no $pattern in $DEPS/lib. Delete $STAMPS/runtime-libraries and run the script again to bundle the runtime libraries again."
+    fi
+    BUNDLED_NAME=$(basename "$match")
+}
+
+detect_runtime_names() {
+    bundled_name 'libfreetype.6.dylib'; FREETYPE_DYLIB=$BUNDLED_NAME
+    bundled_name 'libgnutls.[0-9]*.dylib'; GNUTLS_DYLIB=$BUNDLED_NAME
+    bundled_name 'libgmp.[0-9]*.dylib'; GMP_DYLIB=$BUNDLED_NAME
+    bundled_name 'libSDL2-2.0.0.dylib'; SDL2_DYLIB=$BUNDLED_NAME
+    log "Bundled libraries: $FREETYPE_DYLIB, $GNUTLS_DYLIB, $GMP_DYLIB, $SDL2_DYLIB"
+}
+
+x86_64_file() {
+    file -bL "$1" 2>/dev/null | grep -q 'x86_64'
+}
+
+# The x86_64 pkg-config to use in DEPS_DIR mode, if any.
+setup_deps_pkg_config() {
+    local pc_path="" dir
+    for dir in "$DEPS_DIR/lib/pkgconfig" "$DEPS_DIR/share/pkgconfig"; do
+        [ -d "$dir" ] && pc_path="${pc_path:+$pc_path:}$dir"
+    done
+    if [ -x "$BREW_PREFIX/bin/pkg-config" ] && x86_64_file "$BREW_PREFIX/bin/pkg-config"; then
+        # The x86_64 Homebrew: its own .pc files are x86_64 too, keep its default search path.
+        export PKG_CONFIG="$BREW_PREFIX/bin/pkg-config"
+        export PKG_CONFIG_PATH="$pc_path"
+        log "pkg-config: $PKG_CONFIG${pc_path:+, with $pc_path}"
+    elif [ -n "$pc_path" ] && [ -x "$ARM_BREW_PREFIX/bin/pkg-config" ]; then
+        # Only the native Homebrew has a pkg-config. The program itself can be arm64, but it must
+        # never see the arm64 .pc files: limit it to DEPS_DIR.
+        export PKG_CONFIG="$ARM_BREW_PREFIX/bin/pkg-config"
+        export PKG_CONFIG_LIBDIR="$pc_path"
+        export PKG_CONFIG_PATH=""
+        log "pkg-config: $PKG_CONFIG, limited to $pc_path"
+    else
+        unset PKG_CONFIG PKG_CONFIG_PATH
+        log "pkg-config: none for x86_64, the development files are looked up directly"
+    fi
+    # CPPFLAGS, LDFLAGS and the <VAR>_CFLAGS of provide_dev_files are split on spaces, so
+    # they name DEPS_DIR through a link without spaces when its path has some.
+    case "$DEPS_DIR" in
+        *[[:space:]]*)
+            mkdir -p "$DEV_DIR"
+            ln -sfn "$DEPS_DIR" "$DEV_DIR/deps-dir"
+            DEPS_FLAGS_DIR="$DEV_DIR/deps-dir"
+            ;;
+        *)
+            DEPS_FLAGS_DIR="$DEPS_DIR"
+            ;;
+    esac
+    if [ -d "$DEPS_DIR/include" ]; then
+        CPPFLAGS="${CPPFLAGS:+$CPPFLAGS }-I$DEPS_FLAGS_DIR/include"
+    fi
+    if [ -d "$DEPS_DIR/lib" ]; then
+        LDFLAGS="$LDFLAGS -L$DEPS_FLAGS_DIR/lib"
+    fi
+}
+
+# In DEPS_DIR mode, makes sure configure finds the headers of a library Wine opens with dlopen()
+# and an x86_64 build of it to link its checks against. Configure only needs the headers and a
+# library to link with at build time: the library itself is bundled in lib/ and opened at run
+# time. When pkg-config does not know the library, the headers come from DEPS_DIR/include or,
+# failing that, from the native (arm64) Homebrew: the GnuTLS and FreeType headers are the same
+# for both architectures (the generated parts are version numbers and the iovec type, and
+# FreeType's ftconfig.h works out type sizes from compiler macros). The headers are copied into
+# $DEV_DIR/include so the build never adds /opt/homebrew/include to the search path, and
+# $DEV_DIR/lib gets a lib<name>.dylib link to the x86_64 library from DEPS_DIR. Configure takes
+# the result as <VAR>_CFLAGS and <VAR>_LIBS (AC_ARG_VAR in WINE_PACKAGE_FLAGS, which skips
+# pkg-config when they are set).
+#   provide_dev_files <VAR> <pkg-config name> <Homebrew formula> <header dir> <header file>
+#                     <-I suffix> <link name> <dylib pattern>
+provide_dev_files() {
+    local var=$1 pc=$2 formula=$3 subdir=$4 probe=$5 suffix=$6 link=$7 pattern=$8
+    local inc="" cand lib
+    if [ -n "${PKG_CONFIG:-}" ] && "$PKG_CONFIG" --exists "$pc" 2>/dev/null; then
+        log "$formula: found by pkg-config ($("$PKG_CONFIG" --modversion "$pc" 2>/dev/null || echo '?'))"
+        # The .pc file names its own prefix, which the link above cannot replace.
+        case "$("$PKG_CONFIG" --cflags --libs "$pc" 2>/dev/null)" in
+            *"$DEPS_DIR"*)
+                case "$DEPS_DIR" in
+                    *[[:space:]]*) die "pkg-config gives $formula flags inside DEPS_DIR, whose path has spaces, and configure would split them: $DEPS_DIR. Move DEPS_DIR to a path without spaces." ;;
+                esac
+                ;;
+        esac
+        return 0
+    fi
+    if [ -f "$DEPS_DIR/include/$subdir/$probe" ]; then
+        inc="$DEPS_FLAGS_DIR/include"
+        log "$formula: headers from $DEPS_DIR/include/$subdir"
+    else
+        for cand in "$ARM_BREW_PREFIX/opt/$formula/include" "$ARM_BREW_PREFIX/include"; do
+            if [ -f "$cand/$subdir/$probe" ]; then
+                mkdir -p "$DEV_DIR/include"
+                rm -rf "${DEV_DIR:?}/include/$subdir"
+                cp -RL "$cand/$subdir" "$DEV_DIR/include/$subdir"
+                inc="$DEV_DIR/include"
+                log "$formula: headers copied from $cand/$subdir (native Homebrew, headers only)"
+                break
+            fi
+        done
+    fi
+    if [ -z "$inc" ]; then
+        die "no $formula headers for configure: pkg-config does not know '$pc', and there is no $subdir/$probe in $DEPS_DIR/include or in the native Homebrew ($ARM_BREW_PREFIX). Install them with
+    brew install $formula
+(the native Homebrew is fine, only its headers are used), or add include/ and lib/pkgconfig to DEPS_DIR, then run the script again."
+    fi
+    lib=$(brew_dylib "$formula" "$pattern")
+    if ! x86_64_file "$lib"; then
+        die "$lib is not an x86_64 library ($(file -bL "$lib")). DEPS_DIR must hold x86_64 libraries."
+    fi
+    mkdir -p "$DEV_DIR/lib"
+    ln -sf "$lib" "$DEV_DIR/lib/lib$link.dylib"
+    DEV_CONFIGURE_ARGS+=("${var}_CFLAGS=-I$inc$suffix" "${var}_LIBS=-L$DEV_DIR/lib -l$link")
+}
+
+config_has() {
+    [ -f "$BUILD/include/config.h" ] && grep -q "^#define $1 " "$BUILD/include/config.h"
+}
+
+configure_wine() {
+    local args_file="$VERSION_DIR/configure.args" new_args_file="$VERSION_DIR/configure.args.new"
+    printf '%s\n' "${CONFIGURE_ARGS[@]}" > "$new_args_file"
+    if [ -f "$BUILD/Makefile" ] && [ -f "$args_file" ] && cmp -s "$args_file" "$new_args_file"; then
+        if config_has SONAME_LIBGNUTLS && config_has SONAME_LIBFREETYPE; then
+            log "Already configured with the same options"
+            rm -f "$new_args_file"
+            return 0
+        fi
+        log "The existing build was configured without GnuTLS or FreeType, running configure again"
+    fi
+    # configure runs again in the existing build folder, so make only rebuilds what changed.
+    # --clean starts from an empty folder.
+    mkdir -p "$BUILD"
+    rm -f "$args_file"
+    log "configure ${CONFIGURE_ARGS[*]}"
+    (cd "$BUILD" && "$WINE_SRC/configure" "${CONFIGURE_ARGS[@]}")
+    mv "$new_args_file" "$args_file"
+    log "Library names recorded by configure:"
+    grep -E '#define SONAME_LIB' "$BUILD/include/config.h" || true
+}
+
+# Without SONAME_LIBGNUTLS, bcrypt, crypt32 and secur32 are built without GnuTLS: no ECDSA,
+# the ECC root certificates are dropped from the root store, and TLS fails in games. Without
+# SONAME_LIBFREETYPE there are no fonts. Stop rather than produce such a build.
+check_configure_result() {
+    local missing=""
+    config_has SONAME_LIBGNUTLS || missing="GnuTLS"
+    config_has SONAME_LIBFREETYPE || missing="${missing:+$missing and }FreeType"
+    [ -z "$missing" ] && return 0
+    local how
+    if [ -n "${DEPS_DIR:-}" ]; then
+        how="DEPS_DIR mode: configure needs the x86_64 libraries in DEPS_DIR and their headers.
+Provide them with either
+  - an x86_64 Homebrew: arch -x86_64 /usr/local/bin/brew install gnutls freetype pkgconf
+  - a DEPS_DIR with include/ (gnutls/gnutls.h, freetype2/ft2build.h) and lib/pkgconfig
+  - the native Homebrew headers: brew install gnutls freetype (used for the headers only)"
+    else
+        how="Install the x86_64 development files with:
+    arch -x86_64 $BREW install gnutls freetype pkgconf"
+    fi
+    die "configure did not find $missing: include/config.h in $BUILD has no SONAME_LIBGNUTLS or SONAME_LIBFREETYPE.
+See $BUILD/config.log (search for gnutls.h or ft2build.h) for the reason.
+$how
+Then run the script again: configure runs again and make only rebuilds what changed."
+}
+
+build_wine() {
+    log "make -j$JOBS (this is the long part: about 30 to 90 minutes under Rosetta 2)"
+    make -C "$BUILD" -j"$JOBS"
+}
+
+install_wine() {
+    rm -rf "$STAGE"
+    make -C "$BUILD" install-lib
+}
+
+add_rpath_once() {
+    local file=$1 rpath=$2
+    if ! otool -l "$file" | grep -A2 LC_RPATH | grep -q " path $rpath "; then
+        install_name_tool -add_rpath "$rpath" "$file" 2>/dev/null
+    fi
+}
+
+finish_install() {
+    local file
+
+    log "Copying the runtime libraries into lib/"
+    cp "$DEPS"/lib/*.dylib "$STAGE/lib/"
+
+    log "Adding LC_RPATH entries that point at lib/"
+    # Unix modules live in lib/wine/x86_64-unix (and lib/wine/i386-unix on older trees).
+    for file in "$STAGE"/lib/wine/*-unix/*.so; do
+        [ -f "$file" ] || continue
+        is_macho "$file" || continue
+        add_rpath_once "$file" "@loader_path/../../"
+    done
+    for file in "$STAGE"/bin/*; do
+        [ -f "$file" ] && [ ! -L "$file" ] || continue
+        is_macho "$file" || continue
+        # wine-preloader is a static binary without dyld, it takes no LC_RPATH.
+        if otool -l "$file" | grep -q LC_LOAD_DYLINKER; then
+            add_rpath_once "$file" "@loader_path/../lib"
+        fi
+    done
+
+    # The app always runs bin/wine; older trees name the loader wine64.
+    if [ ! -e "$STAGE/bin/wine" ] && [ -e "$STAGE/bin/wine64" ]; then
+        ln -s wine64 "$STAGE/bin/wine"
+    fi
+    if [ ! -e "$STAGE/bin/wine-preloader" ] && [ -e "$STAGE/bin/wine64-preloader" ]; then
+        ln -s wine64-preloader "$STAGE/bin/wine-preloader"
+    fi
+
+    log "Signing (ad hoc)"
+    while IFS= read -r file; do
+        is_macho "$file" || continue
+        codesign --force --sign - "$file" 2>/dev/null || log "Warning: could not sign $file"
+    done < <(find "$STAGE/bin" "$STAGE/lib" -type f \( -name '*.so' -o -name '*.dylib' -o -perm -u+x \) ! -name '*.dll' ! -name '*.exe')
+
+    log "Adding licence and source information"
+    mkdir -p "$STAGE/share/doc/wine"
+    for file in COPYING.LIB LICENSE AUTHORS; do
+        [ -f "$WINE_SRC/$file" ] && cp "$WINE_SRC/$file" "$STAGE/share/doc/wine/"
+    done
+    cat > "$STAGE/share/doc/wine/SOURCE.txt" <<EOF
+Wine built from the CrossOver $CROSSOVER_VERSION sources published by CodeWeavers:
+$CROSSOVER_SOURCE_URL/crossover-sources-$CROSSOVER_VERSION.tar.gz
+(directory $(cat "$VERSION_DIR/wine_path") of the archive). Wine is licensed under the
+GNU LGPL 2.1 or later, see COPYING.LIB. Built with scripts/build_crossover_wine.sh on
+$(date -u '+%Y-%m-%d'), macOS $(sw_vers -productVersion).
+EOF
+}
+
+install_addons() {
+    local addons="$WINE_SRC/dlls/appwiz.cpl/addons.c" gecko mono arch
+    gecko=$(sed -n 's/^#define GECKO_VERSION "\(.*\)"/\1/p' "$addons" | head -1)
+    mono=$(sed -n 's/^#define MONO_VERSION "\(.*\)"/\1/p' "$addons" | head -1)
+    if [ -z "$gecko" ] || [ -z "$mono" ]; then
+        log "Warning: could not read the Gecko and Mono versions from addons.c, skipping them"
+        return 0
+    fi
+    log "Bundling wine-gecko $gecko and wine-mono $mono into share/wine"
+    mkdir -p "$STAGE/share/wine/gecko" "$STAGE/share/wine/mono"
+    for arch in x86 x86_64; do
+        download "https://dl.winehq.org/wine/wine-gecko/$gecko/wine-gecko-$gecko-$arch.tar.xz" "$DOWNLOADS/wine-gecko-$gecko-$arch.tar.xz"
+        tar -xJf "$DOWNLOADS/wine-gecko-$gecko-$arch.tar.xz" -C "$STAGE/share/wine/gecko"
+    done
+    download "https://dl.winehq.org/wine/wine-mono/$mono/wine-mono-$mono-x86.tar.xz" "$DOWNLOADS/wine-mono-$mono-x86.tar.xz"
+    tar -xJf "$DOWNLOADS/wine-mono-$mono-x86.tar.xz" -C "$STAGE/share/wine/mono"
+}
+
+verify_linkage() {
+    local file bad=0 refs
+    log "Checking that every binary only refers to the system and to its own folder"
+    while IFS= read -r file; do
+        is_macho "$file" || continue
+        # Only the system (/usr/lib, /System) and relative @rpath, @loader_path or
+        # @executable_path names work on another Mac.
+        refs=$(otool_deps "$file" | grep -vE '^(/usr/lib/|/System/|@)' || true)
+        if [ -n "$refs" ]; then
+            echo "  ${file#"$STAGE"/}:"
+            echo "$refs"
+            bad=1
+        fi
+    done < <(find "$STAGE" -type f \( -name '*.so' -o -name '*.dylib' -o -perm -u+x \) ! -name '*.dll' ! -name '*.exe')
+    if [ "$bad" -ne 0 ]; then
+        die "the binaries above link to libraries outside /usr/lib, /System and the Wine folder (Homebrew, MacPorts or DEPS_DIR)"
+    fi
+    # dlopen() names are strings, not load commands: check them separately.
+    refs=$(grep -lE '/usr/local/(opt|Cellar)/|/opt/homebrew/' "$STAGE"/lib/wine/*-unix/*.so 2>/dev/null || true)
+    if [ -n "$refs" ]; then
+        echo "$refs"
+        die "the Unix modules above contain Homebrew paths (probably a SONAME_LIB* recorded by configure)"
+    fi
+    log "OK: otool -L shows only /usr/lib, /System and @rpath/@loader_path references"
+}
+
+run_tests() {
+    local prefix wine_log status
+    prefix=$(mktemp -d "$WORK_DIR/test-prefix.XXXXXX")
+    wine_log="$VERSION_DIR/test.log"
+    # Keep Homebrew's /usr/local/lib out of dyld's fallback search so the test only passes when
+    # the bundled libraries are found.
+    export DYLD_FALLBACK_LIBRARY_PATH="/usr/lib"
+    export WINEPREFIX="$prefix"
+    export WINEDEBUG="-all,err+module"
+    # Skip the Mono and Gecko installers during wineboot; they would open dialogs.
+    export WINEDLLOVERRIDES="mscoree,mshtml="
+
+    log "Test: wine --version"
+    "$STAGE/bin/wine" --version
+
+    log "Test: wineboot --init in $prefix"
+    "$STAGE/bin/wine" wineboot --init > "$wine_log" 2>&1 || status=$?
+    "$STAGE/bin/wineserver" -w || true
+    if [ "${status:-0}" -ne 0 ]; then
+        cat "$wine_log"
+        die "wineboot --init failed with status $status"
+    fi
+    [ -f "$prefix/system.reg" ] || die "wineboot --init did not create $prefix/system.reg"
+
+    log "Test: cmd /c ver (64-bit)"
+    "$STAGE/bin/wine" cmd /c ver 2>>"$wine_log" | tr -d '\r'
+    if [ -f "$prefix/drive_c/windows/syswow64/cmd.exe" ]; then
+        log "Test: cmd /c ver (32-bit, wow64)"
+        "$STAGE/bin/wine" 'C:\windows\syswow64\cmd.exe' /c ver 2>>"$wine_log" | tr -d '\r'
+    else
+        log "Warning: no syswow64/cmd.exe in the test prefix, 32-bit support looks broken"
+    fi
+    "$STAGE/bin/wineserver" -k || true
+
+    if grep -iE 'freetype|gnutls|libSDL2|MoltenVK|vulkan' "$wine_log" | grep -iE 'fail|not found|cannot|could not' ; then
+        log "Warning: Wine reported problems loading a bundled library (see above and $wine_log)"
+    fi
+    unset DYLD_FALLBACK_LIBRARY_PATH WINEPREFIX WINEDEBUG WINEDLLOVERRIDES
+    rm -rf "$prefix"
+}
+
+# ---------------------------------------------------------------------------
+# Build
+# ---------------------------------------------------------------------------
+
+# No stamp: "brew list" is cheap, and a formula removed since the last run comes back.
+log "==> dependencies"
+install_dependencies
+
+# A clean environment: x86_64 Homebrew first, never the arm64 one.
+if [ -x "$BREW" ]; then
+    BISON_PREFIX=$("$BREW" --prefix bison)
+    FLEX_PREFIX=$("$BREW" --prefix flex)
+    GETTEXT_PREFIX=$("$BREW" --prefix gettext)
+    export PATH="$BISON_PREFIX/bin:$FLEX_PREFIX/bin:$GETTEXT_PREFIX/bin:$BREW_PREFIX/bin:/usr/bin:/bin:/usr/sbin:/sbin:$TOOLCHAIN/bin"
+    export PKG_CONFIG="$BREW_PREFIX/bin/pkg-config"
+    export PKG_CONFIG_PATH="$BREW_PREFIX/lib/pkgconfig:$BREW_PREFIX/share/pkgconfig"
+else
+    # DEPS_DIR mode without an x86_64 Homebrew. Apple's /usr/bin/bison is 2.3 and Wine needs
+    # 3.0 or newer: take bison and flex from the native Homebrew (build tools only, they never
+    # end up in the result, and an arm64 bison runs fine from this x86_64 shell).
+    BISON_PREFIX=""
+    FLEX_PREFIX=""
+    GETTEXT_PREFIX=""
+    native_tools=""
+    for dir in "$ARM_BREW_PREFIX/opt/bison/bin" "$ARM_BREW_PREFIX/opt/flex/bin"; do
+        [ -d "$dir" ] && native_tools="$native_tools$dir:"
+    done
+    export PATH="$native_tools/usr/bin:/bin:/usr/sbin:/sbin:$TOOLCHAIN/bin"
+    # macOS has no pkg-config of its own; DEPS_DIR mode picks one below.
+    unset PKG_CONFIG PKG_CONFIG_PATH
+fi
+bison_major=$(bison --version 2>/dev/null | sed -n '1s/.* \([0-9][0-9]*\)\.[0-9][0-9.]*$/\1/p')
+if [ -z "$bison_major" ] || [ "$bison_major" -lt 3 ]; then
+    if [ -x "$BREW" ]; then
+        bison_fix="$BREW install bison flex"
+    else
+        bison_fix="brew install bison flex   (the native Homebrew is fine, they are only build tools)"
+    fi
+    die "Wine needs bison 3.0 or newer, found $(command -v bison || echo 'no bison') ($(bison --version 2>/dev/null | head -1 || true)). Install it with
+    $bison_fix
+then run the script again."
+fi
+log "bison: $(command -v bison) ($(bison --version | head -1)), flex: $(command -v flex || echo none)"
+unset PKG_CONFIG_LIBDIR CPATH LIBRARY_PATH DYLD_LIBRARY_PATH DYLD_FALLBACK_LIBRARY_PATH
+CPPFLAGS=""
+export MACOSX_DEPLOYMENT_TARGET="14.0"
+export CC="/usr/bin/clang"
+export CXX="/usr/bin/clang++"
+export CFLAGS="-arch x86_64 -O2 -Wno-deprecated-declarations -Wno-format -Wno-incompatible-function-pointer-types"
+export CROSSCFLAGS="-O2 -Wno-error=incompatible-pointer-types -Wno-error=int-conversion"
+LDFLAGS="-arch x86_64 -Wl,-headerpad_max_install_names"
+if [ "$WINE_LD_CLASSIC" = "1" ]; then
+    LDFLAGS="-Wl,-ld_classic $LDFLAGS"
+fi
+if [ -n "${DEPS_DIR:-}" ]; then
+    setup_deps_pkg_config
+fi
+export CPPFLAGS LDFLAGS
+
+run_step download download_sources
+run_step extract extract_wine
+WINE_SRC="$SOURCE_ROOT/$(cat "$VERSION_DIR/wine_path")"
+log "Wine source: $WINE_SRC ($(cat "$WINE_SRC/VERSION" 2>/dev/null || echo 'unknown version'))"
+run_step prepare prepare_sources
+log "==> patches"
+apply_patches
+run_step "toolchain-$LLVM_MINGW_VERSION" install_toolchain
+# The stamp records where the libraries came from: switching between DEPS_DIR and Homebrew,
+# or to another DEPS_DIR, bundles them again.
+if [ -n "${DEPS_DIR:-}" ]; then
+    DEPS_MODE="DEPS_DIR=$DEPS_DIR"
+else
+    DEPS_MODE="Homebrew=$BREW_PREFIX"
+fi
+if [ -f "$STAMPS/runtime-libraries" ] && [ "$(cat "$STAMPS/runtime-libraries")" != "$DEPS_MODE" ]; then
+    log "The runtime libraries were bundled from another source, bundling them again from ${DEPS_MODE#*=}"
+    rm -f "$STAMPS/runtime-libraries"
+fi
+run_step runtime-libraries prepare_runtime_libraries
+printf '%s\n' "$DEPS_MODE" > "$STAMPS/runtime-libraries"
+detect_runtime_names
+
+# DEPS_DIR mode: development files for the libraries configure must find (see
+# provide_dev_files). With Homebrew, pkg-config finds them in the x86_64 Homebrew.
+DEV_CONFIGURE_ARGS=()
+if [ -n "${DEPS_DIR:-}" ]; then
+    provide_dev_files GNUTLS gnutls gnutls gnutls gnutls.h "" gnutls 'libgnutls.[0-9]*.dylib'
+    provide_dev_files FREETYPE freetype2 freetype freetype2 ft2build.h /freetype2 freetype 'libfreetype.6.dylib'
+fi
+
+# shellcheck disable=SC2054 # the commas belong to --enable-archs
+CONFIGURE_ARGS=(
+    --prefix="$STAGE"
+    --build=x86_64-apple-darwin
+    --enable-archs=i386,x86_64
+    --enable-win64
+    --disable-tests
+    --disable-winebth_sys
+    --without-alsa
+    --without-capi
+    --with-coreaudio
+    --with-cups
+    --without-dbus
+    --without-ffmpeg
+    --without-fontconfig
+    --with-freetype
+    --without-gettext
+    --without-gettextpo
+    --without-gphoto
+    --with-gnutls
+    --without-gssapi
+    --without-gstreamer
+    --without-inotify
+    --without-krb5
+    --with-mingw=llvm-mingw
+    --without-netapi
+    --with-opencl
+    --without-opengl
+    --without-oss
+    --with-pcap
+    --with-pcsclite
+    --with-pthread
+    --without-pulse
+    --without-sane
+    --with-sdl
+    --without-udev
+    --without-usb
+    --without-v4l2
+    --without-va
+    --with-vulkan
+    --without-wayland
+    --without-x
+    # Library names for dlopen(), resolved through the LC_RPATH added after install.
+    # Configure would otherwise record the bare file name, which dyld only finds in
+    # DYLD_* paths or /usr/local/lib. No Vulkan loader: Wine uses MoltenVK directly.
+    "ac_cv_lib_soname_freetype=@rpath/$FREETYPE_DYLIB"
+    "ac_cv_lib_soname_gnutls=@rpath/$GNUTLS_DYLIB"
+    "ac_cv_lib_soname_gmp=@rpath/$GMP_DYLIB"
+    "ac_cv_lib_soname_SDL2=@rpath/$SDL2_DYLIB"
+    "ac_cv_lib_soname_MoltenVK=@rpath/libMoltenVK.dylib"
+    "ac_cv_lib_soname_vulkan="
+    ${DEV_CONFIGURE_ARGS[@]+"${DEV_CONFIGURE_ARGS[@]}"}
+)
+if [ -n "$EXTRA_CONFIGURE_ARGS" ]; then
+    read -r -a extra_args <<< "$EXTRA_CONFIGURE_ARGS"
+    # Bash 3.2 treats an empty array as unset under set -u (whitespace-only EXTRA_CONFIGURE_ARGS).
+    CONFIGURE_ARGS+=(${extra_args[@]+"${extra_args[@]}"})
+fi
+
+# The remaining steps run every time and stay cheap when nothing changed: configure only
+# reruns when its options change, make only rebuilds what changed, and the install into the
+# staging folder (a few minutes) is redone so it always matches the build.
+log "==> configure"
+configure_wine
+check_configure_result
+log "==> build"
+build_wine
+log "==> install"
+install_wine
+log "==> finish"
+finish_install
+if [ "$WITH_ADDONS" -eq 1 ]; then
+    log "==> addons"
+    install_addons
+fi
+verify_linkage
+if [ "$RUN_TESTS" -eq 1 ]; then
+    run_tests
+fi
+
+log "Copying the result to $OUTPUT_DIR"
+check_output_dir
+rm -rf "$OUTPUT_DIR"
+ditto "$STAGE" "$OUTPUT_DIR"
+
+log "Done: $OUTPUT_DIR"
+log "    $("$OUTPUT_DIR/bin/wine" --version 2>/dev/null || echo 'wine --version failed')"
+for soname in SONAME_LIBGNUTLS SONAME_LIBFREETYPE; do
+    value=$(sed -n "s/^#define $soname \(.*\)$/\1/p" "$BUILD/include/config.h")
+    log "    ${soname#SONAME_LIB}: ${value:-not found}"
+done
+log "Package it with:"
+log "    ./scripts/build_libraries.sh --engine crossover --wine-dir \"$OUTPUT_DIR\" [--gptk <Game Porting Toolkit>]"

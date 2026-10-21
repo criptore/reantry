@@ -1,0 +1,25 @@
+--- a/dlls/kernelbase/process.c
++++ b/dlls/kernelbase/process.c
+@@ -545,6 +545,22 @@
+         app_name = name;
+     }
+ 
++    /* Steam's CEF UI stays black when its GPU process runs separately */
++    if (tidy_cmdline && wcsstr( tidy_cmdline, L"steamwebhelper.exe" ) &&
++        !wcsstr( tidy_cmdline, L"--type=" ) && !wcsstr( tidy_cmdline, L"--in-process-gpu" ))
++    {
++        static const WCHAR append[] = L" --no-sandbox --in-process-gpu --disable-gpu";
++        WCHAR *cmd = RtlAllocateHeap( GetProcessHeap(), 0,
++                                      (lstrlenW( tidy_cmdline ) + ARRAY_SIZE(append)) * sizeof(WCHAR) );
++        if (cmd)
++        {
++            lstrcpyW( cmd, tidy_cmdline );
++            lstrcatW( cmd, append );
++            if (tidy_cmdline != cmd_line) HeapFree( GetProcessHeap(), 0, tidy_cmdline );
++            tidy_cmdline = cmd;
++        }
++    }
++
+     /* CW Hack 24938 */
+     if (cmd_line && wcsstr(cmd_line, L"EpicGamesLauncher.exe"))
+     {
