@@ -57,68 +57,22 @@ public extension Process {
 
             continuation.yield(.started(self))
 
-            pipe.fileHandleForReading.readabilityHandler = { pipe in
-                guard let line = pipe.nextLine() else { return }
-                continuation.yield(.message(line))
-                guard !line.isEmpty else { return }
-                Logger.wineKit.info("\(line, privacy: .public)")
-                fileHandle?.write(line: line)
-            }
-
-            errorPipe.fileHandleForReading.readabilityHandler = { pipe in
-                guard let line = pipe.nextLine() else { return }
-                continuation.yield(.error(line))
-                guard !line.isEmpty else { return }
-                Logger.wineKit.warning("\(line, privacy: .public)")
-                fileHandle?.write(line: line)
-            }
+            let forwarder = OutputForwarder(
+                pipes: [
+                    (handle: pipe.fileHandleForReading, kind: .message),
+                    (handle: errorPipe.fileHandleForReading, kind: .error)
+                ],
+                continuation: continuation, fileHandle: fileHandle
+            )
+            forwarder.start()
 
             terminationHandler = { (process: Process) in
-                Self.drainPipe(pipe, as: .message, continuation: continuation, fileHandle: fileHandle)
-                Self.drainPipe(errorPipe, as: .error, continuation: continuation, fileHandle: fileHandle)
-                process.logTermination(name: name, fileHandle: fileHandle)
-                try? fileHandle?.close()
-                continuation.yield(.terminated(process))
-                continuation.finish()
+                forwarder.processTerminated(process, name: name)
             }
         }
     }
 
-    /// Forwards what the process left in the pipe, without waiting for the end of the pipe.
-    ///
-    /// Processes started by the process, such as the programs a `wineboot` starts, inherit the pipe and keep it
-    /// open after the process ended, so waiting for the end of the pipe would wait for them too. What they write
-    /// afterwards is read and dropped, so that they never block on a full pipe or write to a closed one.
-    private static func drainPipe(
-        _ pipe: Pipe,
-        as kind: PipeKind,
-        continuation: AsyncStream<ProcessOutput>.Continuation,
-        fileHandle: FileHandle?
-    ) {
-        let reading = pipe.fileHandleForReading
-        reading.readabilityHandler = nil
-        let remaining = readWithoutWaiting(from: reading.fileDescriptor)
-        // Holding the handle keeps the pipe open for them, until they all closed it
-        reading.readabilityHandler = { _ in
-            if reading.availableData.isEmpty {
-                reading.readabilityHandler = nil
-            }
-        }
-
-        guard let text = String(data: remaining, encoding: .utf8), !text.isEmpty else { return }
-
-        switch kind {
-        case .message:
-            continuation.yield(.message(text))
-            Logger.wineKit.info("\(text, privacy: .public)")
-        case .error:
-            continuation.yield(.error(text))
-            Logger.wineKit.warning("\(text, privacy: .public)")
-        }
-        fileHandle?.write(line: text)
-    }
-
-    private func logTermination(name: String, fileHandle: FileHandle? = nil) {
+    fileprivate func logTermination(name: String, fileHandle: FileHandle? = nil) {
         let reason: String
         switch terminationReason {
         case .exit:
@@ -160,33 +114,123 @@ public extension Process {
     }
 }
 
-private enum PipeKind {
+private enum PipeKind: Hashable {
     case message
     case error
 }
 
+/// Forwards the output of a process to its stream and to its log file.
+///
+/// The stream finishes when the process exits, with everything the process wrote. Processes started by the
+/// process, such as the programs a `wineboot` or a `start.exe` starts, inherit the pipes and can keep them open
+/// long after, so their output keeps going to the log file, which is closed only at the end of both pipes.
+///
+/// All the reads happen on one serial queue and never wait, so the termination handler and the readability
+/// handlers never race for the last bytes of a pipe.
+private final class OutputForwarder: @unchecked Sendable {
+    private let queue = DispatchQueue(label: "WhiskyKit.OutputForwarder")
+    private let pipes: [(handle: FileHandle, kind: PipeKind)]
+    private let continuation: AsyncStream<ProcessOutput>.Continuation
+    private let fileHandle: FileHandle?
+    // Only used on `queue`
+    private var openPipes: Set<PipeKind>
+    private var finished = false
+    private var logClosed = false
+
+    init(
+        pipes: [(handle: FileHandle, kind: PipeKind)],
+        continuation: AsyncStream<ProcessOutput>.Continuation,
+        fileHandle: FileHandle?
+    ) {
+        self.pipes = pipes
+        self.continuation = continuation
+        self.fileHandle = fileHandle
+        self.openPipes = Set(pipes.map { $0.kind })
+    }
+
+    func start() {
+        for pipe in pipes {
+            let kind = pipe.kind
+            pipe.handle.readabilityHandler = { handle in
+                self.queue.sync {
+                    self.forward(from: handle, as: kind)
+                }
+            }
+        }
+    }
+
+    func processTerminated(_ process: Process, name: String) {
+        queue.sync {
+            // The process exited, so all it wrote is already in the pipes
+            for pipe in pipes {
+                forward(from: pipe.handle, as: pipe.kind)
+            }
+            process.logTermination(name: name, fileHandle: logClosed ? nil : fileHandle)
+            continuation.yield(.terminated(process))
+            continuation.finish()
+            finished = true
+            closeLogIfDone()
+        }
+    }
+
+    /// Must run on `queue`.
+    private func forward(from handle: FileHandle, as kind: PipeKind) {
+        guard openPipes.contains(kind) else { return }
+        let result = readWithoutWaiting(from: handle.fileDescriptor)
+        emit(result.data, as: kind)
+
+        if result.reachedEnd {
+            handle.readabilityHandler = nil
+            openPipes.remove(kind)
+            closeLogIfDone()
+        }
+    }
+
+    /// Must run on `queue`.
+    private func emit(_ data: Data, as kind: PipeKind) {
+        guard !data.isEmpty, let text = String(data: data, encoding: .utf8) else { return }
+
+        switch kind {
+        case .message:
+            if !finished { continuation.yield(.message(text)) }
+            Logger.wineKit.info("\(text, privacy: .public)")
+        case .error:
+            if !finished { continuation.yield(.error(text)) }
+            Logger.wineKit.warning("\(text, privacy: .public)")
+        }
+
+        if !logClosed {
+            fileHandle?.write(line: text)
+        }
+    }
+
+    /// Must run on `queue`.
+    private func closeLogIfDone() {
+        guard finished, openPipes.isEmpty, !logClosed else { return }
+        logClosed = true
+        try? fileHandle?.close()
+    }
+}
+
+private struct PipeRead {
+    var data = Data()
+    var reachedEnd = false
+}
+
 /// Reads the data that is already in a pipe, stopping as soon as reading more would wait.
-private func readWithoutWaiting(from fileDescriptor: Int32) -> Data {
+private func readWithoutWaiting(from fileDescriptor: Int32) -> PipeRead {
     let bufferSize = 16_384
     var buffer = [UInt8](repeating: 0, count: bufferSize)
-    var data = Data()
+    var result = PipeRead()
     var descriptor = pollfd(fd: fileDescriptor, events: Int16(POLLIN), revents: 0)
     // `poll` also reports the end of the pipe as readable, then `read` returns 0
     while poll(&descriptor, 1, 0) > 0 {
         let count = read(fileDescriptor, &buffer, bufferSize)
-        guard count > 0 else { break }
-        data.append(contentsOf: buffer[0..<count])
-    }
-    return data
-}
-
-extension FileHandle {
-    func nextLine() -> String? {
-        guard let line = String(data: availableData, encoding: .utf8) else { return nil }
-        if !line.isEmpty {
-            return line
-        } else {
-            return nil
+        guard count > 0 else {
+            result.reachedEnd = true
+            break
         }
+        result.data.append(contentsOf: buffer[0..<count])
     }
+    return result
 }
