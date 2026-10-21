@@ -245,6 +245,12 @@ if [ -z "${DEPS_DIR:-}" ] && [ ! -x "$BREW" ]; then
 or point DEPS_DIR at a folder holding the x86_64 runtime libraries (freetype, gnutls, gmp, SDL2 and their dependencies)."
 fi
 
+if [ -n "${DEPS_DIR:-}" ]; then
+    [ -d "$DEPS_DIR" ] || die "DEPS_DIR is not a folder: $DEPS_DIR"
+    # Absolute, so the runtime-libraries stamp names the same folder whatever the current folder.
+    DEPS_DIR="$(cd "$DEPS_DIR" && pwd)"
+fi
+
 free_gb=$(df -g "$WORK_DIR" | awk 'NR==2 {print $4}')
 if [ -n "$free_gb" ] && [ "$free_gb" -lt 20 ]; then
     log "Warning: only ${free_gb} GB free in $WORK_DIR, the build needs about 15 GB."
@@ -790,7 +796,9 @@ run_tests() {
 # Build
 # ---------------------------------------------------------------------------
 
-run_step dependencies install_dependencies
+# No stamp: "brew list" is cheap, and a formula removed since the last run comes back.
+log "==> dependencies"
+install_dependencies
 
 # A clean environment: x86_64 Homebrew first, never the arm64 one.
 if [ -x "$BREW" ]; then
@@ -851,7 +859,19 @@ run_step prepare prepare_sources
 log "==> patches"
 apply_patches
 run_step "toolchain-$LLVM_MINGW_VERSION" install_toolchain
+# The stamp records where the libraries came from: switching between DEPS_DIR and Homebrew,
+# or to another DEPS_DIR, bundles them again.
+if [ -n "${DEPS_DIR:-}" ]; then
+    DEPS_MODE="DEPS_DIR=$DEPS_DIR"
+else
+    DEPS_MODE="Homebrew=$BREW_PREFIX"
+fi
+if [ -f "$STAMPS/runtime-libraries" ] && [ "$(cat "$STAMPS/runtime-libraries")" != "$DEPS_MODE" ]; then
+    log "The runtime libraries were bundled from another source, bundling them again from ${DEPS_MODE#*=}"
+    rm -f "$STAMPS/runtime-libraries"
+fi
 run_step runtime-libraries prepare_runtime_libraries
+printf '%s\n' "$DEPS_MODE" > "$STAMPS/runtime-libraries"
 detect_runtime_names
 
 # DEPS_DIR mode: development files for the libraries configure must find (see

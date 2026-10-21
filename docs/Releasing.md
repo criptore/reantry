@@ -250,8 +250,10 @@ DEPS_DIR=/path/to/x86_64-libs CROSSOVER_VERSION=26.3.0 ./scripts/build_crossover
 The log goes to `~/crossover-wine-build/build.log`. When a step fails, the
 script prints the failed command; fix the cause and run it again: finished
 steps (download, extraction, toolchain, libraries, configure with the same
-options) are skipped and `make` continues where it stopped. `--clean` starts the
-version over. When the listing cannot be read, the script falls back to
+options) are skipped and `make` continues where it stopped. The Homebrew check
+runs every time, and the libraries are bundled again when their source changes
+(another `DEPS_DIR`, or switching between `DEPS_DIR` and Homebrew). `--clean`
+starts the version over. When the listing cannot be read, the script falls back to
 `CROSSOVER_FALLBACK_VERSION` in the script; check that this version still
 exists on the server before relying on it. The result is written to
 `build/crossover-wine-<version>/` (`bin/wine`, `bin/wineserver`, `lib/`, `share/`).
