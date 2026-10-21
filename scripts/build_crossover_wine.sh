@@ -252,6 +252,10 @@ if [ -n "${DEPS_DIR:-}" ]; then
     DEPS_DIR="$(cd "$DEPS_DIR" && pwd)"
 fi
 
+if [ -z "$LLVM_MINGW_SHA256" ]; then
+    log "Warning: no checksum for llvm-mingw $LLVM_MINGW_VERSION (only the default version has one built in), the download is not verified. Set LLVM_MINGW_SHA256 to check it."
+fi
+
 free_gb=$(df -g "$WORK_DIR" | awk 'NR==2 {print $4}')
 if [ -n "$free_gb" ] && [ "$free_gb" -lt 20 ]; then
     log "Warning: only ${free_gb} GB free in $WORK_DIR, the build needs about 15 GB."
@@ -976,7 +980,8 @@ CONFIGURE_ARGS=(
 )
 if [ -n "$EXTRA_CONFIGURE_ARGS" ]; then
     read -r -a extra_args <<< "$EXTRA_CONFIGURE_ARGS"
-    CONFIGURE_ARGS+=("${extra_args[@]}")
+    # Bash 3.2 treats an empty array as unset under set -u (whitespace-only EXTRA_CONFIGURE_ARGS).
+    CONFIGURE_ARGS+=(${extra_args[@]+"${extra_args[@]}"})
 fi
 
 # The remaining steps run every time and stay cheap when nothing changed: configure only
