@@ -147,10 +147,10 @@ extension Whisky {
             }
             applySimpleSettings(to: bottle)
             if let runtimeName {
-                bottle.settings.wineRuntime = runtimeName
                 // The wineserver of the previous runtime may still run on the bottle, and would serve the next
-                // Wine processes
-                try await CLI.stopForeignWineserver(for: bottle)
+                // Wine processes. It is stopped first, so that the new runtime is saved only once it is gone.
+                try await CLI.stopForeignWineserver(for: bottle, runtime: runtimeName)
+                bottle.settings.wineRuntime = runtimeName
             }
             if backend != nil {
                 // Swaps the DLLs of the previous backend right away, instead of at the next launch

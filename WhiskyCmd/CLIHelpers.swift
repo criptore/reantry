@@ -186,7 +186,12 @@ enum CLI {
 extension CLI {
     /// The `wineserver` of the bottle's runtime.
     static func wineserverURL(for bottle: Bottle) -> URL {
-        WhiskyWineInstaller.binFolder(for: bottle.settings.wineRuntime).appending(path: "wineserver")
+        wineserverURL(runtime: bottle.settings.wineRuntime)
+    }
+
+    /// The `wineserver` of a runtime, `nil` standing for the default runtime.
+    static func wineserverURL(runtime: String?) -> URL {
+        WhiskyWineInstaller.binFolder(for: runtime).appending(path: "wineserver")
     }
 
     /// Stops the wineserver running on the bottle when it comes from another runtime than the bottle's.
@@ -198,8 +203,14 @@ extension CLI {
     /// The executables are compared by device and inode, and the wineserver is left running, with a warning,
     /// whenever its executable cannot be told apart from the runtime's for sure.
     static func stopForeignWineserver(for bottle: Bottle) async throws {
+        try await stopForeignWineserver(for: bottle, runtime: bottle.settings.wineRuntime)
+    }
+
+    /// Stops the wineserver running on the bottle when it comes from another runtime than the given one, `nil`
+    /// standing for the default runtime.
+    static func stopForeignWineserver(for bottle: Bottle, runtime: String?) async throws {
         guard let owner = wineserverOwner(prefix: bottle.url) else { return }
-        let expected = wineserverURL(for: bottle)
+        let expected = wineserverURL(runtime: runtime)
 
         guard let running = executable(of: owner) else {
             Console.err("Warning: cannot find the executable of the wineserver running on this bottle "
