@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build release artifacts
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Build app and CLI (Release)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project Whisky.xcodeproj \
+            -scheme Whisky \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+          xcodebuild \
+            -project Whisky.xcodeproj \
+            -scheme WhiskyCmd \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Locate build products
+        id: products
+        run: |
+          APP=$(find ~/Library/Developer/Xcode/DerivedData -name "Whisky.app" -type d | head -1)
+          CMD=$(find ~/Library/Developer/Xcode/DerivedData -name "WhiskyCmd" -type f -perm +111 | head -1)
+          echo "app=$APP" >> "$GITHUB_OUTPUT"
+          echo "cmd=$CMD" >> "$GITHUB_OUTPUT"
+          echo "APP=$APP"
+          echo "CMD=$CMD"
+
+      - name: Package artifacts
+        run: |
+          cd "$(dirname "${{ steps.products.outputs.app }}")"
+          ditto -c -k --keepParent "${{ steps.products.outputs.app }}" Reantry.app.zip
+          cp "${{ steps.products.outputs.cmd }}" ReantryCmd
+          chmod +x ReantryCmd
+          shasum -a 256 Reantry.app.zip ReantryCmd > SHA256SUMS
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          files: |
+            Reantry.app.zip
+            ReantryCmd
+            SHA256SUMS
+          generate_release_notes: true
