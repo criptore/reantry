@@ -432,17 +432,24 @@ bundle_dylib() {
         if [ "$dep_name" = "$name" ]; then
             continue
         fi
-        case "$dep" in
-            "$BREW_PREFIX"/*|/opt/homebrew/*)
-                dep_source="$dep"
-                ;;
-            @rpath/*|@loader_path/*)
-                dep_source="$(dirname "$source")/$dep_name"
-                ;;
-            *)
-                continue
-                ;;
-        esac
+        if [ -n "${DEPS_DIR:-}" ] && [[ "$dep" == "$DEPS_DIR"/* ]]; then
+            # A prebuilt library that refers to its siblings by their absolute DEPS_DIR path.
+            dep_source="$dep"
+        else
+            case "$dep" in
+                "$BREW_PREFIX"/*|/opt/homebrew/*)
+                    dep_source="$dep"
+                    ;;
+                @rpath/*|@loader_path/*|@executable_path/*)
+                    dep_source="$(dirname "$source")/$dep_name"
+                    ;;
+                *)
+                    # System libraries (/usr/lib, /System). Anything else is caught by
+                    # verify_linkage.
+                    continue
+                    ;;
+            esac
+        fi
         if [ ! -f "$dep_source" ]; then
             die "$name needs $dep, which was not found"
         fi
@@ -743,10 +750,13 @@ install_addons() {
 
 verify_linkage() {
     local file bad=0 refs
-    log "Checking that no binary refers to Homebrew"
+    log "Checking that every binary only refers to the system and to its own folder"
     while IFS= read -r file; do
         is_macho "$file" || continue
-        refs=$(otool -L "$file" | tail -n +2 | grep -E '/usr/local/|/opt/homebrew/|/opt/local/' || true)
+        # Dependencies are the tab-indented lines (a universal file has one header line per
+        # architecture). Only the system (/usr/lib, /System) and relative @rpath, @loader_path
+        # or @executable_path names work on another Mac.
+        refs=$(otool -L "$file" | awk '/^\t/ {print $1}' | grep -vE '^(/usr/lib/|/System/|@)' || true)
         if [ -n "$refs" ]; then
             echo "  ${file#"$STAGE"/}:"
             echo "$refs"
@@ -754,7 +764,7 @@ verify_linkage() {
         fi
     done < <(find "$STAGE" -type f \( -name '*.so' -o -name '*.dylib' -o -perm -u+x \) ! -name '*.dll' ! -name '*.exe')
     if [ "$bad" -ne 0 ]; then
-        die "the binaries above still link to Homebrew or MacPorts libraries"
+        die "the binaries above link to libraries outside /usr/lib, /System and the Wine folder (Homebrew, MacPorts or DEPS_DIR)"
     fi
     # dlopen() names are strings, not load commands: check them separately.
     refs=$(grep -lE '/usr/local/(opt|Cellar)/|/opt/homebrew/' "$STAGE"/lib/wine/*-unix/*.so 2>/dev/null || true)
@@ -762,7 +772,7 @@ verify_linkage() {
         echo "$refs"
         die "the Unix modules above contain Homebrew paths (probably a SONAME_LIB* recorded by configure)"
     fi
-    log "OK: otool -L shows no /usr/local, /opt/homebrew or /opt/local reference"
+    log "OK: otool -L shows only /usr/lib, /System and @rpath/@loader_path references"
 }
 
 run_tests() {

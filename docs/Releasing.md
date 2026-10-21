@@ -226,7 +226,8 @@ brew install bison flex gnutls freetype
 The libraries are copied into `lib/` with `@rpath` install names, configure
 records `@rpath/<name>` for the libraries Wine opens with `dlopen()`, and every
 Unix module gets an `LC_RPATH` to `lib/`. The script then checks with `otool -L`
-that no binary refers to `/usr/local`, `/opt/homebrew` or `/opt/local`, and runs
+that binaries only refer to `/usr/lib/`, `/System/` and `@rpath`/`@loader_path`
+names (so nothing from Homebrew, MacPorts or `DEPS_DIR`), and runs
 `wine --version`, `wineboot --init` in a temporary prefix and `cmd /c ver` (64
 and 32-bit) with `DYLD_FALLBACK_LIBRARY_PATH=/usr/lib`, so Homebrew's libraries
 cannot be picked up by accident. wine-mono and wine-gecko, in the versions the
