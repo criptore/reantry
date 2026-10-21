@@ -101,10 +101,11 @@ public class Wine {
     ) async throws {
         switch bottle.settings.graphicsBackend {
         case .d3dMetal:
-            break
+            try disableDXVK(bottle: bottle)
         case .dxvk:
             try enableDXVK(bottle: bottle)
         case .wineD3D:
+            try disableDXVK(bottle: bottle)
             try enableWineD3D(bottle: bottle)
         }
 

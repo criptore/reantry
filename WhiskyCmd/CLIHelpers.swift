@@ -128,13 +128,15 @@ enum CLI {
     }
 
     /// Copies the graphics backend files into the bottle, as `Wine.runProgram` does before starting a program.
+    /// The DXVK DLLs left by a previous backend are replaced with Wine's own.
     static func prepareGraphicsBackend(for bottle: Bottle) throws {
         switch bottle.settings.graphicsBackend {
         case .d3dMetal:
-            break
+            try Wine.disableDXVK(bottle: bottle)
         case .dxvk:
             try Wine.enableDXVK(bottle: bottle)
         case .wineD3D:
+            try Wine.disableDXVK(bottle: bottle)
             try Wine.enableWineD3D(bottle: bottle)
         }
     }

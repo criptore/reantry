@@ -140,6 +140,10 @@ extension Whisky {
                 // Wine processes
                 try await CLI.stopForeignWineserver(for: bottle)
             }
+            if backend != nil {
+                // Swaps the DLLs of the previous backend right away, instead of at the next launch
+                try CLI.prepareGraphicsBackend(for: bottle)
+            }
 
             printSettings(of: bottle)
         }
