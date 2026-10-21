@@ -45,6 +45,7 @@ extension Whisky {
             try CLI.requireWine()
             let bottle = try CLI.bottle(named: bottleName)
             try CLI.prepareGraphicsBackend(for: bottle)
+            try await CLI.stopForeignWineserver(for: bottle)
 
             let status = try await CLI.streamWine(args: wineArgs, bottle: bottle)
 
@@ -84,6 +85,7 @@ extension Whisky {
 
             try CLI.requireWine()
             try CLI.prepareGraphicsBackend(for: bottle)
+            try await CLI.stopForeignWineserver(for: bottle)
             let savedArguments = program.settings.arguments.split { $0.isWhitespace }.map(String.init)
 
             guard wait else {

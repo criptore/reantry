@@ -125,6 +125,7 @@ extension Whisky {
             // Everything that can fail is checked before the first change, so nothing is applied halfway
             if winVersion != nil {
                 try CLI.requireWine()
+                try await CLI.stopForeignWineserver(for: bottle)
             }
 
             if let winVersion {
@@ -135,6 +136,9 @@ extension Whisky {
             applySimpleSettings(to: bottle)
             if let runtimeName {
                 bottle.settings.wineRuntime = runtimeName
+                // The wineserver of the previous runtime may still run on the bottle, and would serve the next
+                // Wine processes
+                try await CLI.stopForeignWineserver(for: bottle)
             }
 
             printSettings(of: bottle)

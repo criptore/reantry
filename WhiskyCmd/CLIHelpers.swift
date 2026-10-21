@@ -175,12 +175,83 @@ enum CLI {
     }
 
     /// Waits for every process of the bottle to end (`wineserver -w`).
-    /// `Wine.runWineserverProcess` would start a log of its own, which would hide wine's log from `logs --last`.
     static func waitForWineserver(bottle: Bottle) async throws {
+        try await runWineserver(wineserverURL(for: bottle), args: ["-w"], bottle: bottle)
+    }
+}
+
+extension CLI {
+    /// The `wineserver` of the bottle's runtime.
+    static func wineserverURL(for bottle: Bottle) -> URL {
+        WhiskyWineInstaller.binFolder(for: bottle.settings.wineRuntime).appending(path: "wineserver")
+    }
+
+    /// Stops the wineserver running on the bottle when it comes from another runtime than the bottle's.
+    ///
+    /// Wine processes use the wineserver already running on their prefix. After a runtime change, the one started
+    /// by the previous runtime would fail them with a protocol mismatch, or serve them with the previous runtime.
+    /// Its own `wineserver -k` stops it, after it saved the registry.
+    static func stopForeignWineserver(for bottle: Bottle) async throws {
+        guard let running = runningWineserver(prefix: bottle.url) else { return }
+        let expected = wineserverURL(for: bottle)
+        let runningPath = running.resolvingSymlinksInPath().path(percentEncoded: false)
+        guard runningPath != expected.resolvingSymlinksInPath().path(percentEncoded: false) else { return }
+
+        Console.err("Stopping the wineserver of another runtime on this bottle: \(displayPath(running))")
+        let exists = FileManager.default.isExecutableFile(atPath: running.path(percentEncoded: false))
+        // `wineserver -k` signals the owner of the lock, so any runtime's can stop it
+        try await runWineserver(exists ? running : expected, args: ["-k"], bottle: bottle)
+    }
+
+    /// The executable of the wineserver running on the given prefix, if any.
+    ///
+    /// A wineserver locks the file `lock` of its folder, `/tmp/.wine-<uid>/server-<device>-<inode>` for the device
+    /// and the inode of the prefix in hexadecimal, as long as it runs. The owner of that lock is the wineserver.
+    private static func runningWineserver(prefix: URL) -> URL? {
+        var info = stat()
+        guard stat(prefix.path(percentEncoded: false), &info) == 0 else { return nil }
+        // Wine formats the device as an unsigned 64-bit number, sign extended like a C cast
+        let device = String(UInt64(bitPattern: Int64(info.st_dev)), radix: 16)
+        let inode = String(info.st_ino, radix: 16)
+        let lock = "/tmp/.wine-\(getuid())/server-\(device)-\(inode)/lock"
+
+        let descriptor = open(lock, O_RDWR)
+        guard descriptor >= 0 else { return nil }
+        defer { close(descriptor) }
+        var request = flock()
+        request.l_type = Int16(F_WRLCK)
+        request.l_whence = Int16(SEEK_SET)
+        guard fcntl(descriptor, F_GETLK, &request) == 0, request.l_type != Int16(F_UNLCK) else { return nil }
+        return executable(of: request.l_pid)
+    }
+
+    /// The executable of a process, as reported by `ps`. Only an absolute path is trusted.
+    private static func executable(of pid: pid_t) -> URL? {
         let process = Process()
-        process.executableURL = WhiskyWineInstaller.binFolder(for: bottle.settings.wineRuntime)
-            .appending(path: "wineserver")
-        process.arguments = ["-w"]
+        let output = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/bin/ps")
+        process.arguments = ["-o", "comm=", "-p", String(pid)]
+        process.standardOutput = output
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+        } catch {
+            return nil
+        }
+        let data = output.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0,
+              let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              path.hasPrefix("/") else { return nil }
+        return URL(fileURLWithPath: path)
+    }
+
+    /// Runs `wineserver` on the bottle and waits for it to end.
+    /// `Wine.runWineserverProcess` would start a log of its own, which would hide wine's log from `logs --last`.
+    private static func runWineserver(_ executable: URL, args: [String], bottle: Bottle) async throws {
+        let process = Process()
+        process.executableURL = executable
+        process.arguments = args
         process.environment = ["WINEPREFIX": bottle.url.path(percentEncoded: false)]
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             process.terminationHandler = { _ in continuation.resume() }
