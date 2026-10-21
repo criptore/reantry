@@ -485,11 +485,12 @@ brew_dylib() {
     echo "$match"
 }
 
-# Runtime libraries Wine opens with dlopen(), resolved from the x86_64 Homebrew.
-FREETYPE_DYLIB="libfreetype.6.dylib"
+# Runtime libraries Wine opens with dlopen(), set by detect_runtime_names from $DEPS/lib.
+FREETYPE_DYLIB=""
 GNUTLS_DYLIB=""
 GMP_DYLIB=""
-SDL2_DYLIB="libSDL2-2.0.0.dylib"
+SDL2_DYLIB=""
+BUNDLED_NAME=""
 
 prepare_runtime_libraries() {
     local freetype gnutls gmp sdl2 moltenvk_archive
@@ -524,9 +525,23 @@ prepare_runtime_libraries() {
     ls -1 "$DEPS/lib"
 }
 
+# The names configure records for dlopen(), read from the bundled copies in $DEPS/lib so they
+# always match what finish_install copies into lib/.
+bundled_name() {
+    local pattern=$1 match
+    match=$(find "$DEPS/lib" -maxdepth 1 -name "$pattern" | head -1)
+    if [ -z "$match" ]; then
+        die "no $pattern in $DEPS/lib. Delete $STAMPS/runtime-libraries and run the script again to bundle the runtime libraries again."
+    fi
+    BUNDLED_NAME=$(basename "$match")
+}
+
 detect_runtime_names() {
-    GNUTLS_DYLIB=$(basename "$(brew_dylib gnutls 'libgnutls.[0-9]*.dylib')")
-    GMP_DYLIB=$(basename "$(brew_dylib gmp 'libgmp.[0-9]*.dylib')")
+    bundled_name 'libfreetype.6.dylib'; FREETYPE_DYLIB=$BUNDLED_NAME
+    bundled_name 'libgnutls.[0-9]*.dylib'; GNUTLS_DYLIB=$BUNDLED_NAME
+    bundled_name 'libgmp.[0-9]*.dylib'; GMP_DYLIB=$BUNDLED_NAME
+    bundled_name 'libSDL2-2.0.0.dylib'; SDL2_DYLIB=$BUNDLED_NAME
+    log "Bundled libraries: $FREETYPE_DYLIB, $GNUTLS_DYLIB, $GMP_DYLIB, $SDL2_DYLIB"
 }
 
 x86_64_file() {
