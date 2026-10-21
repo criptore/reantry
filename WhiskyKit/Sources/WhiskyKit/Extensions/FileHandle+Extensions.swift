@@ -48,11 +48,9 @@ extension FileHandle {
         var header = String()
         let macOSVersion = ProcessInfo.processInfo.operatingSystemVersion
 
-        let info = Bundle.main.infoDictionary
-        let name = info?["CFBundleName"] as? String
-        let version = info?["CFBundleShortVersionString"] as? String
-        let application = [name, version].compactMap { $0 }.joined(separator: " ")
-        header += "Reantry Version: \(application.isEmpty ? "WhiskyCmd" : application)\n"
+        // The label already names the product, so only the version follows it
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+        header += "Reantry Version: \(version ?? "unknown (WhiskyCmd)")\n"
         header += "Date: \(ISO8601DateFormatter().string(from: Date.now))\n"
         header += "macOS Version: \(macOSVersion.majorVersion).\(macOSVersion.minorVersion).\(macOSVersion.patchVersion)\n\n"
         write(line: header)

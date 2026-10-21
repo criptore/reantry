@@ -35,6 +35,22 @@ extension Wine {
         )
     }
 
+    /// Put back the DLLs of the bottle's runtime where `enableDXVK` copied the DXVK ones, once the bottle uses
+    /// another graphics backend. Only the DLLs that are still the DXVK ones are replaced.
+    public static func disableDXVK(bottle: Bottle) throws {
+        let windows = bottle.url.appending(path: "drive_c").appending(path: "windows")
+        let wineLibraries = WhiskyWineInstaller.binFolder(for: bottle.settings.wineRuntime)
+            .deletingLastPathComponent().appending(path: "lib").appending(path: "wine")
+        try FileManager.default.restoreDLLs(
+            in: windows.appending(path: "system32"), replacingCopiesOf: Wine.dxvkFolder.appending(path: "x64"),
+            withContentsIn: wineLibraries.appending(path: "x86_64-windows")
+        )
+        try FileManager.default.restoreDLLs(
+            in: windows.appending(path: "syswow64"), replacingCopiesOf: Wine.dxvkFolder.appending(path: "x32"),
+            withContentsIn: wineLibraries.appending(path: "i386-windows")
+        )
+    }
+
     /// Copy Wine's own Direct3D DLLs into the bottle when D3DMetal replaced them in the Wine libraries
     public static func enableWineD3D(bottle: Bottle) throws {
         try FileManager.default.replaceDLLs(

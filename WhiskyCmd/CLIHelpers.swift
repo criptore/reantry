@@ -16,6 +16,7 @@
 //  If not, see https://www.gnu.org/licenses/.
 //
 
+import Darwin
 import Foundation
 import WhiskyKit
 import ArgumentParser
@@ -128,15 +129,28 @@ enum CLI {
     }
 
     /// Copies the graphics backend files into the bottle, as `Wine.runProgram` does before starting a program.
+    /// The DXVK DLLs left by a previous backend are replaced with Wine's own.
     static func prepareGraphicsBackend(for bottle: Bottle) throws {
         switch bottle.settings.graphicsBackend {
         case .d3dMetal:
-            break
+            try Wine.disableDXVK(bottle: bottle)
         case .dxvk:
             try Wine.enableDXVK(bottle: bottle)
         case .wineD3D:
+            try Wine.disableDXVK(bottle: bottle)
             try Wine.enableWineD3D(bottle: bottle)
         }
+    }
+
+    /// The given environment, plus the variables of this command's own environment that must reach wine.
+    /// Wine only gets the environment it is given, so a `WINEDEBUG` set by the caller would otherwise be
+    /// replaced by the default one.
+    static func wineEnvironment(_ environment: [String: String] = [:]) -> [String: String] {
+        var result = environment
+        if let debug = ProcessInfo.processInfo.environment["WINEDEBUG"] {
+            result["WINEDEBUG"] = debug
+        }
+        return result
     }
 
     /// Runs wine in the bottle, streaming its output, and returns its exit status.
@@ -146,7 +160,7 @@ enum CLI {
     ) async throws -> Int32 {
         var status: Int32 = 0
         for await output in try Wine.runWineProcess(
-            args: args, bottle: bottle, environment: environment, directory: directory
+            args: args, bottle: bottle, environment: wineEnvironment(environment), directory: directory
         ) {
             switch output {
             case .started:
@@ -164,12 +178,97 @@ enum CLI {
     }
 
     /// Waits for every process of the bottle to end (`wineserver -w`).
-    /// `Wine.runWineserverProcess` would start a log of its own, which would hide wine's log from `logs --last`.
     static func waitForWineserver(bottle: Bottle) async throws {
+        try await runWineserver(wineserverURL(for: bottle), args: ["-w"], bottle: bottle)
+    }
+}
+
+extension CLI {
+    /// The `wineserver` of the bottle's runtime.
+    static func wineserverURL(for bottle: Bottle) -> URL {
+        wineserverURL(runtime: bottle.settings.wineRuntime)
+    }
+
+    /// The `wineserver` of a runtime, `nil` standing for the default runtime.
+    static func wineserverURL(runtime: String?) -> URL {
+        WhiskyWineInstaller.binFolder(for: runtime).appending(path: "wineserver")
+    }
+
+    /// Stops the wineserver running on the bottle when it comes from another runtime than the bottle's.
+    ///
+    /// Wine processes use the wineserver already running on their prefix. After a runtime change, the one started
+    /// by the previous runtime would fail them with a protocol mismatch, or serve them with the previous runtime.
+    /// Its own `wineserver -k` stops it, after it saved the registry.
+    ///
+    /// The executables are compared by device and inode, and the wineserver is left running, with a warning,
+    /// whenever its executable cannot be told apart from the runtime's for sure.
+    static func stopForeignWineserver(for bottle: Bottle) async throws {
+        try await stopForeignWineserver(for: bottle, runtime: bottle.settings.wineRuntime)
+    }
+
+    /// Stops the wineserver running on the bottle when it comes from another runtime than the given one, `nil`
+    /// standing for the default runtime.
+    static func stopForeignWineserver(for bottle: Bottle, runtime: String?) async throws {
+        guard let owner = wineserverOwner(prefix: bottle.url) else { return }
+        let expected = wineserverURL(runtime: runtime)
+
+        guard let running = executable(of: owner) else {
+            Console.err("Warning: cannot find the executable of the wineserver running on this bottle "
+                        + "(pid \(owner)), so it is left running.")
+            return
+        }
+        guard let runningIdentity = FileIdentity(of: running), let expectedIdentity = FileIdentity(of: expected) else {
+            Console.err("Warning: cannot compare the wineserver running on this bottle, \(displayPath(running)), "
+                        + "with the one of its runtime, so it is left running.")
+            return
+        }
+        guard runningIdentity != expectedIdentity else { return }
+
+        Console.err("Stopping the wineserver of another runtime on this bottle: \(displayPath(running))")
+        // `wineserver -k` signals the owner of the lock, so any runtime's can stop it
+        try await runWineserver(running, args: ["-k"], bottle: bottle)
+    }
+
+    /// The process id of the wineserver running on the given prefix, if any.
+    ///
+    /// A wineserver locks the file `lock` of its folder, `/tmp/.wine-<uid>/server-<device>-<inode>` for the device
+    /// and the inode of the prefix in hexadecimal, as long as it runs. The owner of that lock is the wineserver.
+    private static func wineserverOwner(prefix: URL) -> pid_t? {
+        var info = stat()
+        guard stat(prefix.path(percentEncoded: false), &info) == 0 else { return nil }
+        // Wine formats the device as an unsigned 64-bit number, sign extended like a C cast
+        let device = String(UInt64(bitPattern: Int64(info.st_dev)), radix: 16)
+        let inode = String(info.st_ino, radix: 16)
+        let lock = "/tmp/.wine-\(getuid())/server-\(device)-\(inode)/lock"
+
+        let descriptor = open(lock, O_RDWR)
+        guard descriptor >= 0 else { return nil }
+        defer { close(descriptor) }
+        var request = flock()
+        request.l_type = Int16(F_WRLCK)
+        request.l_whence = Int16(SEEK_SET)
+        guard fcntl(descriptor, F_GETLK, &request) == 0, request.l_type != Int16(F_UNLCK) else { return nil }
+        return request.l_pid
+    }
+
+    /// The executable of a process, as reported by the kernel. Only an absolute path is trusted.
+    private static func executable(of pid: pid_t) -> URL? {
+        // PROC_PIDPATHINFO_MAXSIZE
+        let size = 4 * Int(MAXPATHLEN)
+        var buffer = [UInt8](repeating: 0, count: size)
+        let length = proc_pidpath(pid, &buffer, UInt32(size))
+        guard length > 0,
+              let path = String(bytes: buffer[0..<Int(length)], encoding: .utf8),
+              path.hasPrefix("/") else { return nil }
+        return URL(fileURLWithPath: path)
+    }
+
+    /// Runs `wineserver` on the bottle and waits for it to end.
+    /// `Wine.runWineserverProcess` would start a log of its own, which would hide wine's log from `logs --last`.
+    private static func runWineserver(_ executable: URL, args: [String], bottle: Bottle) async throws {
         let process = Process()
-        process.executableURL = WhiskyWineInstaller.binFolder(for: bottle.settings.wineRuntime)
-            .appending(path: "wineserver")
-        process.arguments = ["-w"]
+        process.executableURL = executable
+        process.arguments = args
         process.environment = ["WINEPREFIX": bottle.url.path(percentEncoded: false)]
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             process.terminationHandler = { _ in continuation.resume() }
@@ -180,5 +279,19 @@ enum CLI {
                 continuation.resume(throwing: error)
             }
         }
+    }
+}
+
+/// The device and the inode of a file, which tell whether two paths lead to the same file.
+private struct FileIdentity: Equatable {
+    let device: dev_t
+    let inode: ino_t
+
+    /// Follows symbolic links; `nil` when the file cannot be reached.
+    init?(of url: URL) {
+        var info = stat()
+        guard stat(url.path(percentEncoded: false), &info) == 0 else { return nil }
+        device = info.st_dev
+        inode = info.st_ino
     }
 }

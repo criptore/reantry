@@ -36,6 +36,12 @@ enum SyncOption: String, CaseIterable, ExpressibleByArgument {
     }
 }
 
+/// Retina mode as spelled on the command line.
+enum RetinaOption: String, CaseIterable, ExpressibleByArgument {
+    case enabled = "on"
+    case disabled = "off"
+}
+
 private struct PrefixNotCreated: Error, CustomStringConvertible {
     let description = "Wine did not initialize the prefix (no system.reg in the bottle)."
 }
@@ -115,6 +121,9 @@ extension Whisky {
         @Option(help: "Name of an installed Wine runtime, or \"default\".")
         var runtime: String?
 
+        @Option(help: "Retina mode, rendering at the full resolution of the screen: on or off.")
+        var retina: RetinaOption?
+
         mutating func run() async throws {
             let bottle = try CLI.bottle(named: bottleName)
 
@@ -123,18 +132,29 @@ extension Whisky {
             let runtimeName: String?? = try runtime.map { try resolveRuntime($0) }
 
             // Everything that can fail is checked before the first change, so nothing is applied halfway
-            if winVersion != nil {
+            if winVersion != nil || retina != nil {
                 try CLI.requireWine()
+                try await CLI.stopForeignWineserver(for: bottle)
             }
 
+            // The changes that run Wine, and can still fail on their own, go first
             if let winVersion {
-                // The only change that can still fail on its own, so it goes first
                 try await Wine.changeWinVersion(bottle: bottle, win: winVersion)
                 bottle.settings.windowsVersion = winVersion
             }
+            if let retina {
+                try await Wine.changeRetinaMode(bottle: bottle, retinaMode: retina == .enabled)
+            }
             applySimpleSettings(to: bottle)
             if let runtimeName {
+                // The wineserver of the previous runtime may still run on the bottle, and would serve the next
+                // Wine processes. It is stopped first, so that the new runtime is saved only once it is gone.
+                try await CLI.stopForeignWineserver(for: bottle, runtime: runtimeName)
                 bottle.settings.wineRuntime = runtimeName
+            }
+            if backend != nil {
+                // Swaps the DLLs of the previous backend right away, instead of at the next launch
+                try CLI.prepareGraphicsBackend(for: bottle)
             }
 
             printSettings(of: bottle)
@@ -173,6 +193,26 @@ extension Whisky {
             Console.out("Metal HUD: \(settings.metalHud)")
             Console.out("AVX: \(settings.avxEnabled)")
             Console.out("Wine runtime: \(settings.wineRuntime ?? "default")")
+            Console.out("Retina mode: \(retinaMode(of: bottle) ? "on" : "off")")
+        }
+
+        /// The retina mode just set, or else the one saved in the bottle's `user.reg`. Reading the file directly
+        /// needs no Wine process, unlike `Wine.retinaMode`, which also writes the value when it is missing.
+        /// Wine leaves the retina mode off when the value is missing.
+        private func retinaMode(of bottle: Bottle) -> Bool {
+            if let retina { return retina == .enabled }
+            guard let data = try? Data(contentsOf: bottle.url.appending(path: "user.reg")),
+                  let registry = String(bytes: data, encoding: .utf8) else { return false }
+
+            var inMacDriverKey = false
+            for line in registry.lowercased().split(whereSeparator: \.isNewline) {
+                if line.hasPrefix("[") {
+                    inMacDriverKey = line.hasPrefix(#"[software\\wine\\mac driver]"#)
+                } else if inMacDriverKey, line.hasPrefix(#""retinamode"="#) {
+                    return line.hasPrefix(#""retinamode"="y""#)
+                }
+            }
+            return false
         }
     }
 }

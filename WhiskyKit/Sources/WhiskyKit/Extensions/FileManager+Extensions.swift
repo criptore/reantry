@@ -33,6 +33,22 @@ extension FileManager {
         }
     }
 
+    /// Replaces the DLLs of `destinationDirectory` that are still copies of the ones in `copiedDirectory` with the
+    /// DLLs of the same name in `sourceDirectory`.
+    func restoreDLLs(
+        in destinationDirectory: URL, replacingCopiesOf copiedDirectory: URL, withContentsIn sourceDirectory: URL
+    ) throws {
+        let copies = (try? contentsOfDirectory(at: copiedDirectory, includingPropertiesForKeys: nil)) ?? []
+        for copy in copies where copy.pathExtension == "dll" {
+            let installed = destinationDirectory.appending(path: copy.lastPathComponent)
+            let original = sourceDirectory.appending(path: copy.lastPathComponent)
+            guard fileExists(atPath: original.path(percentEncoded: false)),
+                  contentsEqual(atPath: installed.path(percentEncoded: false),
+                                andPath: copy.path(percentEncoded: false)) else { continue }
+            try replaceFile(at: installed, with: original, makeOriginalCopy: false)
+        }
+    }
+
     func replaceFile(at originalURL: URL, with replacementURL: URL, makeOriginalCopy: Bool = true) throws {
         if fileExists(atPath: originalURL.path(percentEncoded: false)) {
             if makeOriginalCopy {
