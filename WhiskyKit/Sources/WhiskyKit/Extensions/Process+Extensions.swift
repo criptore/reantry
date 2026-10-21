@@ -218,15 +218,30 @@ private struct PipeRead {
 }
 
 /// Reads the data that is already in a pipe, stopping as soon as reading more would wait.
+///
+/// One call reads at most a few megabytes, so that a program writing without pause cannot keep it reading;
+/// what is left stays in the pipe and makes it readable again.
 private func readWithoutWaiting(from fileDescriptor: Int32) -> PipeRead {
     let bufferSize = 16_384
+    let maxBytes = 4 * 1_024 * 1_024
     var buffer = [UInt8](repeating: 0, count: bufferSize)
     var result = PipeRead()
     var descriptor = pollfd(fd: fileDescriptor, events: Int16(POLLIN), revents: 0)
-    // `poll` also reports the end of the pipe as readable, then `read` returns 0
-    while poll(&descriptor, 1, 0) > 0 {
+
+    while result.data.count < maxBytes {
+        let ready = poll(&descriptor, 1, 0)
+        if ready < 0 && errno == EINTR { continue }
+        // `poll` also reports the end of the pipe as readable, then `read` returns 0
+        guard ready > 0 else { break }
+
         let count = read(fileDescriptor, &buffer, bufferSize)
+        if count < 0 {
+            let error = errno
+            if error == EINTR { continue }
+            if error == EAGAIN || error == EWOULDBLOCK { break }
+        }
         guard count > 0 else {
+            // The end of the pipe, or an error after which nothing more can be read
             result.reachedEnd = true
             break
         }
