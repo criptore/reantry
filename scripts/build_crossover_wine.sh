@@ -130,6 +130,8 @@ BREW_PACKAGES="bison flex pkgconf gettext freetype gnutls sdl2"
 # The native (arm64) Homebrew. In DEPS_DIR mode its GnuTLS and FreeType headers are used when
 # no x86_64 ones are available; nothing else is taken from it.
 ARM_BREW_PREFIX="${ARM_BREW_PREFIX:-/opt/homebrew}"
+# DEPS_DIR as it appears in compiler flags (set by setup_deps_pkg_config).
+DEPS_FLAGS_DIR=""
 
 WORK_DIR="${WORK_DIR:-$HOME/crossover-wine-build}"
 OUTPUT_DIR=""
@@ -251,6 +253,12 @@ if [ -n "${DEPS_DIR:-}" ]; then
     # Absolute, so the runtime-libraries stamp names the same folder whatever the current folder.
     DEPS_DIR="$(cd "$DEPS_DIR" && pwd)"
 fi
+# Autoconf refuses a source or build folder whose path has a space ("unsafe srcdir value"), and
+# the build, the sources and --prefix all live in WORK_DIR. DEPS_DIR may have spaces: the paths
+# passed to configure go through a link in the work folder (see setup_deps_pkg_config).
+case "$WORK_DIR" in
+    *[[:space:]]*) die "the work folder must not contain spaces, configure refuses it: $WORK_DIR. Choose another one with --work-dir." ;;
+esac
 
 if [ -z "$LLVM_MINGW_SHA256" ]; then
     log "Warning: no checksum for llvm-mingw $LLVM_MINGW_VERSION (only the default version has one built in), the download is not verified. Set LLVM_MINGW_SHA256 to check it."
@@ -418,11 +426,18 @@ install_toolchain() {
     "$TOOLCHAIN/bin/clang" --version | head -1
 }
 
+# The libraries a Mach-O file links to, one full path per line. otool -L indents them and
+# appends "(compatibility version ...)"; a universal file also has a header line per
+# architecture, which is left out. The first entry of a dylib is its own install name.
+otool_deps() {
+    otool -L "$1" | sed -n 's/^[[:space:]]\{1,\}\(.*\) (compatibility version.*$/\1/p'
+}
+
 # Copies a Homebrew dylib and, recursively, the Homebrew dylibs it links to into $DEPS/lib.
 # Each copy gets the install name @rpath/<name> and refers to its siblings through
 # @loader_path/<name>, so the set works from any folder.
 bundle_dylib() {
-    local source=$1 name dest dep dep_name dep_source
+    local source=$1 name dest deps dep dep_name dep_source
     name=$(basename "$source")
     dest="$DEPS/lib/$name"
     if [ -f "$dest" ]; then
@@ -431,7 +446,10 @@ bundle_dylib() {
     cp -L "$source" "$dest"
     chmod u+w "$dest"
     install_name_tool -id "@rpath/$name" "$dest" 2>/dev/null
-    for dep in $(otool -L "$dest" | tail -n +2 | awk '{print $1}'); do
+    # One dependency per line, read whole: a DEPS_DIR path can contain spaces.
+    deps=$(otool_deps "$dest")
+    while IFS= read -r dep; do
+        [ -n "$dep" ] || continue
         dep_name=$(basename "$dep")
         if [ "$dep_name" = "$name" ]; then
             continue
@@ -459,7 +477,7 @@ bundle_dylib() {
         fi
         install_name_tool -change "$dep" "@loader_path/$dep_name" "$dest" 2>/dev/null
         bundle_dylib "$dep_source"
-    done
+    done <<< "$deps"
 }
 
 brew_dylib() {
@@ -574,11 +592,23 @@ setup_deps_pkg_config() {
         unset PKG_CONFIG PKG_CONFIG_PATH
         log "pkg-config: none for x86_64, the development files are looked up directly"
     fi
+    # CPPFLAGS, LDFLAGS and the <VAR>_CFLAGS of provide_dev_files are split on spaces, so
+    # they name DEPS_DIR through a link without spaces when its path has some.
+    case "$DEPS_DIR" in
+        *[[:space:]]*)
+            mkdir -p "$DEV_DIR"
+            ln -sfn "$DEPS_DIR" "$DEV_DIR/deps-dir"
+            DEPS_FLAGS_DIR="$DEV_DIR/deps-dir"
+            ;;
+        *)
+            DEPS_FLAGS_DIR="$DEPS_DIR"
+            ;;
+    esac
     if [ -d "$DEPS_DIR/include" ]; then
-        CPPFLAGS="${CPPFLAGS:+$CPPFLAGS }-I$DEPS_DIR/include"
+        CPPFLAGS="${CPPFLAGS:+$CPPFLAGS }-I$DEPS_FLAGS_DIR/include"
     fi
     if [ -d "$DEPS_DIR/lib" ]; then
-        LDFLAGS="$LDFLAGS -L$DEPS_DIR/lib"
+        LDFLAGS="$LDFLAGS -L$DEPS_FLAGS_DIR/lib"
     fi
 }
 
@@ -600,11 +630,19 @@ provide_dev_files() {
     local inc="" cand lib
     if [ -n "${PKG_CONFIG:-}" ] && "$PKG_CONFIG" --exists "$pc" 2>/dev/null; then
         log "$formula: found by pkg-config ($("$PKG_CONFIG" --modversion "$pc" 2>/dev/null || echo '?'))"
+        # The .pc file names its own prefix, which the link above cannot replace.
+        case "$("$PKG_CONFIG" --cflags --libs "$pc" 2>/dev/null)" in
+            *"$DEPS_DIR"*)
+                case "$DEPS_DIR" in
+                    *[[:space:]]*) die "pkg-config gives $formula flags inside DEPS_DIR, whose path has spaces, and configure would split them: $DEPS_DIR. Move DEPS_DIR to a path without spaces." ;;
+                esac
+                ;;
+        esac
         return 0
     fi
     if [ -f "$DEPS_DIR/include/$subdir/$probe" ]; then
-        inc="$DEPS_DIR/include"
-        log "$formula: headers from $inc/$subdir"
+        inc="$DEPS_FLAGS_DIR/include"
+        log "$formula: headers from $DEPS_DIR/include/$subdir"
     else
         for cand in "$ARM_BREW_PREFIX/opt/$formula/include" "$ARM_BREW_PREFIX/include"; do
             if [ -f "$cand/$subdir/$probe" ]; then
@@ -772,10 +810,9 @@ verify_linkage() {
     log "Checking that every binary only refers to the system and to its own folder"
     while IFS= read -r file; do
         is_macho "$file" || continue
-        # Dependencies are the tab-indented lines (a universal file has one header line per
-        # architecture). Only the system (/usr/lib, /System) and relative @rpath, @loader_path
-        # or @executable_path names work on another Mac.
-        refs=$(otool -L "$file" | awk '/^\t/ {print $1}' | grep -vE '^(/usr/lib/|/System/|@)' || true)
+        # Only the system (/usr/lib, /System) and relative @rpath, @loader_path or
+        # @executable_path names work on another Mac.
+        refs=$(otool_deps "$file" | grep -vE '^(/usr/lib/|/System/|@)' || true)
         if [ -n "$refs" ]; then
             echo "  ${file#"$STAGE"/}:"
             echo "$refs"

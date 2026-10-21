@@ -223,6 +223,13 @@ build time; Wine opens the bundled x86_64 library with `dlopen()` at run time.
 Use headers of the same GnuTLS major version as the library (3.x for
 `libgnutls.30.dylib`).
 
+`DEPS_DIR` may contain spaces (for instance a folder under
+`~/Library/Application Support`): the paths given to configure go through a
+link in the work folder. The only case that stops the build is pkg-config
+returning flags inside such a `DEPS_DIR`, since the `.pc` files name their own
+prefix. The work folder itself (`--work-dir`) must not contain spaces:
+autoconf refuses a source or build folder with one.
+
 Without an x86_64 Homebrew, the build tools come from the native Homebrew
 too: Wine needs bison 3.0 or newer and Apple's `/usr/bin/bison` is 2.3. The
 script puts `/opt/homebrew/opt/bison/bin` and `/opt/homebrew/opt/flex/bin`
