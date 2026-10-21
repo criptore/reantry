@@ -59,7 +59,8 @@ jobs:
 
       - name: Package artifacts
         run: |
-          cd "$(dirname "${{ steps.products.outputs.app }}")"
+          mkdir -p dist
+          cd dist
           ditto -c -k --keepParent "${{ steps.products.outputs.app }}" Reantry.app.zip
           cp "${{ steps.products.outputs.cmd }}" ReantryCmd
           chmod +x ReantryCmd
@@ -70,7 +71,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           files: |
-            Reantry.app.zip
-            ReantryCmd
-            SHA256SUMS
+            dist/Reantry.app.zip
+            dist/ReantryCmd
+            dist/SHA256SUMS
           generate_release_notes: true
