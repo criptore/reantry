@@ -28,7 +28,8 @@ set -euo pipefail
 #   --version X.Y.Z  Version written to WhiskyWineVersion.plist. Defaults to today's date
 #                    as YYYY.M.D (2026.10.20), which is higher than the 11.18.0 installed
 #                    by the fallback. Must increase on every publish so installed apps
-#                    offer the update.
+#                    offer the update: for a second build on the same day use a higher
+#                    patch number, e.g. 2026.10.2001 (see docs/Releasing.md).
 #   --publish        Upload Libraries.tar.gz and WhiskyWineVersion.plist to the
 #                    "libraries" release with the GitHub CLI (gh).
 #

@@ -334,8 +334,14 @@ The version in `WhiskyWineVersion.plist` defaults to the build date as
 `YYYY.M.D` without leading zeros (for example `2026.10.20`). It is higher than
 the `11.18.0` that the fallback installs, so installed apps offer the update,
 and it increases with every build on a later day. Pass `--version X.Y.Z` to
-override it (for a second build on the same day, for instance `2026.10.20`
-then `2026.10.21`); the script only checks the `X.Y.Z` shape.
+override it; the script only checks the `X.Y.Z` shape (numbers only). For a
+second build on the same day, use a higher patch number of the form
+`YYYY.M.D01`, `YYYY.M.D02`, ... (for instance `2026.10.2001` after
+`2026.10.20`) rather than the next day's date, which the next day's default
+version would collide with. The patch number is compared as a number, so
+after such a build the following days of that month must use the same form
+too (`2026.10.2101`, not the default `2026.10.21`); the next month's default
+(`2026.11.1`) is higher again.
 
 Until the `libraries` release exists, the setup wizard falls back to the
 Gcenx Wine Staging build set in `AppDistribution.fallbackWineVersion` (11.18).
