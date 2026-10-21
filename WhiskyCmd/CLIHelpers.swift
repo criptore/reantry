@@ -16,6 +16,7 @@
 //  If not, see https://www.gnu.org/licenses/.
 //
 
+import Darwin
 import Foundation
 import WhiskyKit
 import ArgumentParser
@@ -193,23 +194,35 @@ extension CLI {
     /// Wine processes use the wineserver already running on their prefix. After a runtime change, the one started
     /// by the previous runtime would fail them with a protocol mismatch, or serve them with the previous runtime.
     /// Its own `wineserver -k` stops it, after it saved the registry.
+    ///
+    /// The executables are compared by device and inode, and the wineserver is left running, with a warning,
+    /// whenever its executable cannot be told apart from the runtime's for sure.
     static func stopForeignWineserver(for bottle: Bottle) async throws {
-        guard let running = runningWineserver(prefix: bottle.url) else { return }
+        guard let owner = wineserverOwner(prefix: bottle.url) else { return }
         let expected = wineserverURL(for: bottle)
-        let runningPath = running.resolvingSymlinksInPath().path(percentEncoded: false)
-        guard runningPath != expected.resolvingSymlinksInPath().path(percentEncoded: false) else { return }
+
+        guard let running = executable(of: owner) else {
+            Console.err("Warning: cannot find the executable of the wineserver running on this bottle "
+                        + "(pid \(owner)), so it is left running.")
+            return
+        }
+        guard let runningIdentity = FileIdentity(of: running), let expectedIdentity = FileIdentity(of: expected) else {
+            Console.err("Warning: cannot compare the wineserver running on this bottle, \(displayPath(running)), "
+                        + "with the one of its runtime, so it is left running.")
+            return
+        }
+        guard runningIdentity != expectedIdentity else { return }
 
         Console.err("Stopping the wineserver of another runtime on this bottle: \(displayPath(running))")
-        let exists = FileManager.default.isExecutableFile(atPath: running.path(percentEncoded: false))
         // `wineserver -k` signals the owner of the lock, so any runtime's can stop it
-        try await runWineserver(exists ? running : expected, args: ["-k"], bottle: bottle)
+        try await runWineserver(running, args: ["-k"], bottle: bottle)
     }
 
-    /// The executable of the wineserver running on the given prefix, if any.
+    /// The process id of the wineserver running on the given prefix, if any.
     ///
     /// A wineserver locks the file `lock` of its folder, `/tmp/.wine-<uid>/server-<device>-<inode>` for the device
     /// and the inode of the prefix in hexadecimal, as long as it runs. The owner of that lock is the wineserver.
-    private static func runningWineserver(prefix: URL) -> URL? {
+    private static func wineserverOwner(prefix: URL) -> pid_t? {
         var info = stat()
         guard stat(prefix.path(percentEncoded: false), &info) == 0 else { return nil }
         // Wine formats the device as an unsigned 64-bit number, sign extended like a C cast
@@ -224,26 +237,17 @@ extension CLI {
         request.l_type = Int16(F_WRLCK)
         request.l_whence = Int16(SEEK_SET)
         guard fcntl(descriptor, F_GETLK, &request) == 0, request.l_type != Int16(F_UNLCK) else { return nil }
-        return executable(of: request.l_pid)
+        return request.l_pid
     }
 
-    /// The executable of a process, as reported by `ps`. Only an absolute path is trusted.
+    /// The executable of a process, as reported by the kernel. Only an absolute path is trusted.
     private static func executable(of pid: pid_t) -> URL? {
-        let process = Process()
-        let output = Pipe()
-        process.executableURL = URL(fileURLWithPath: "/bin/ps")
-        process.arguments = ["-o", "comm=", "-p", String(pid)]
-        process.standardOutput = output
-        process.standardError = FileHandle.nullDevice
-        do {
-            try process.run()
-        } catch {
-            return nil
-        }
-        let data = output.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0,
-              let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+        // PROC_PIDPATHINFO_MAXSIZE
+        let size = 4 * Int(MAXPATHLEN)
+        var buffer = [UInt8](repeating: 0, count: size)
+        let length = proc_pidpath(pid, &buffer, UInt32(size))
+        guard length > 0,
+              let path = String(bytes: buffer[0..<Int(length)], encoding: .utf8),
               path.hasPrefix("/") else { return nil }
         return URL(fileURLWithPath: path)
     }
@@ -264,5 +268,19 @@ extension CLI {
                 continuation.resume(throwing: error)
             }
         }
+    }
+}
+
+/// The device and the inode of a file, which tell whether two paths lead to the same file.
+private struct FileIdentity: Equatable {
+    let device: dev_t
+    let inode: ino_t
+
+    /// Follows symbolic links; `nil` when the file cannot be reached.
+    init?(of url: URL) {
+        var info = stat()
+        guard stat(url.path(percentEncoded: false), &info) == 0 else { return nil }
+        device = info.st_dev
+        inode = info.st_ino
     }
 }
