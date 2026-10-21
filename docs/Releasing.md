@@ -355,11 +355,13 @@ run a DirectX 11 game with each graphics backend.
 
 Known points to check:
 
-- **D3DMetal licence.** Read the licence in
-  `Libraries/Wine/lib/external/D3DMetal.framework/Versions/A/Resources/LICENSE`
-  of the built archive before publishing it, as it redistributes Apple's
-  D3DMetal. With `--engine staging --gptk`, read the licence in the Game
-  Porting Toolkit DMG instead.
+- **D3DMetal licence.** Do not ship Apple's D3DMetal in a published
+  archive: Apple's Game Porting Toolkit licence is non-commercial and its
+  components must not be separated from the toolkit for redistribution.
+  Publish with `--engine crossover` (or `staging`) and without `--gptk`;
+  each user then provides their own Game Porting Toolkit to enable
+  D3DMetal/WineD3D. With `--engine gptk`, D3DMetal is already included in
+  that engine's own archive and remains subject to the same restriction.
 - **Sikarugir licence.** The README of
   [Sikarugir-App/Engines](https://github.com/Sikarugir-App/Engines) contains
   only a title and states no licence, and the repository declares none. Wine
