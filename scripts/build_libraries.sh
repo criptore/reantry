@@ -7,7 +7,7 @@ set -euo pipefail
 #   ./scripts/build_libraries.sh [--engine gptk|staging|sikarugir|crossover] [--wine-dir <path>]
 #                                [--gptk <path>] [--version X.Y.Z] [--publish]
 #
-#   --engine <name>  Wine build to package. Defaults to gptk.
+#   --engine <name>  Wine build to package. Defaults to crossover.
 #                    gptk:    Gcenx's Game Porting Toolkit build (CrossOver based, D3DMetal
 #                             included). Version set with GPTK_VERSION (default 3.0-3).
 #                    staging: Gcenx's Wine Staging build, optionally merged with Apple's
@@ -52,7 +52,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BUILD_DIR="/tmp/libraries-build"
 OUTPUT_DIR="$PROJECT_DIR/build"
 
-ENGINE="gptk"
+ENGINE="crossover"
 GPTK_PATH=""
 WINE_DIR=""
 LIBRARIES_VERSION=""
@@ -76,14 +76,31 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+# When no Wine folder is given for the crossover engine, use the most recent one built by
+# scripts/build_crossover_wine.sh (build/crossover-wine-*).
+if [ "$ENGINE" = "crossover" ] && [ -z "$WINE_DIR" ]; then
+    WINE_DIR=$(find "$PROJECT_DIR/build" -maxdepth 1 -type d -name 'crossover-wine-*' 2>/dev/null | sort | tail -1 || true)
+fi
+# When no Game Porting Toolkit is given for the crossover engine, use a mounted one if present,
+# so D3DMetal is merged by default.
+if [ "$ENGINE" = "crossover" ] && [ -z "$GPTK_PATH" ]; then
+    for vol in /Volumes/*; do
+        if [ -d "$vol/redist/lib/external/D3DMetal.framework" ] || [ -d "$vol/lib/external/D3DMetal.framework" ]; then
+            GPTK_PATH="$vol"
+            break
+        fi
+    done
+fi
+
 case "$ENGINE" in
     gptk|staging|sikarugir|crossover) ;;
     *) echo "Error: --engine must be gptk, staging, sikarugir or crossover, got '$ENGINE'"; exit 1 ;;
 esac
 if [ "$ENGINE" = "crossover" ]; then
     if [ -z "$WINE_DIR" ]; then
-        echo "Error: --engine crossover needs --wine-dir <path>, the folder built by"
-        echo "       scripts/build_crossover_wine.sh"
+        echo "Error: --engine crossover needs a Wine folder built by"
+        echo "       scripts/build_crossover_wine.sh (none found in build/crossover-wine-*)"
+        echo "       or --wine-dir <path>."
         exit 1
     fi
     if [ ! -x "$WINE_DIR/bin/wine" ] || [ ! -x "$WINE_DIR/bin/wineserver" ] || [ ! -d "$WINE_DIR/lib/wine" ]; then

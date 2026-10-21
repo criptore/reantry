@@ -119,8 +119,8 @@ To build a runtime from source:
 # CrossOver-based Wine (wow64, recommended)
 ./scripts/build_crossover_wine.sh
 
-# Game Porting Toolkit 3.0-3
-./scripts/build_libraries.sh --engine gptk
+# CrossOver-based Wine with D3DMetal (default)
+./scripts/build_libraries.sh
 
 # Wine Staging 11.18
 ./scripts/build_libraries.sh --engine staging
