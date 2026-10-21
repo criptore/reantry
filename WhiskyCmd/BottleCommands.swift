@@ -201,10 +201,11 @@ extension Whisky {
         /// Wine leaves the retina mode off when the value is missing.
         private func retinaMode(of bottle: Bottle) -> Bool {
             if let retina { return retina == .enabled }
-            guard let data = try? Data(contentsOf: bottle.url.appending(path: "user.reg")) else { return false }
+            guard let data = try? Data(contentsOf: bottle.url.appending(path: "user.reg")),
+                  let registry = String(bytes: data, encoding: .utf8) else { return false }
 
             var inMacDriverKey = false
-            for line in String(decoding: data, as: UTF8.self).lowercased().split(whereSeparator: \.isNewline) {
+            for line in registry.lowercased().split(whereSeparator: \.isNewline) {
                 if line.hasPrefix("[") {
                     inMacDriverKey = line.hasPrefix(#"[software\\wine\\mac driver]"#)
                 } else if inMacDriverKey, line.hasPrefix(#""retinamode"="#) {
