@@ -37,12 +37,12 @@ selected with `--engine`:
 
 | Engine | Source | Notes |
 |--------|--------|-------|
-| `gptk` (default) | [Gcenx/game-porting-toolkit](https://github.com/Gcenx/game-porting-toolkit) 3.0-3 | CrossOver based, D3DMetal included |
+| `gptk` | [Gcenx/game-porting-toolkit](https://github.com/Gcenx/game-porting-toolkit) 3.0-3 | CrossOver based, D3DMetal included |
 | `staging` | [Gcenx/macOS_Wine_builds](https://github.com/Gcenx/macOS_Wine_builds) Wine Staging 11.18 | Upstream Wine, no D3DMetal unless merged with `--gptk` |
 | `sikarugir` | [Sikarugir-App/Engines](https://github.com/Sikarugir-App/Engines) `WS12WineSikarugir11.0_1` | Wine 11.0 (unified wow64) with macOS patches and DXMT's `winemetal.dll` |
-| `crossover` | Built locally from the [CrossOver sources](https://media.codeweavers.com/pub/crossover/source/) with `scripts/build_crossover_wine.sh`, passed with `--wine-dir` | CrossOver's Wine (macOS and Steam fixes), D3DMetal merged with `--gptk` |
+| `crossover` (default) | Built locally from the [CrossOver sources](https://media.codeweavers.com/pub/crossover/source/) with `scripts/build_crossover_wine.sh`, passed with `--wine-dir` | CrossOver's Wine (macOS and Steam fixes), D3DMetal merged with `--gptk` |
 
-`gptk` is the default because it is CrossOver based and already includes
+`crossover` is the default: CrossOver's Wine (macOS and Steam fixes) with D3DMetal merged from a mounted Game Porting Toolkit when one is found. `gptk` is the alternative that is CrossOver based and already includes
 D3DMetal (`lib/external/D3DMetal.framework`, `libd3dshared.dylib` and the
 D3DMetal `d3d11`, `d3d12`, `dxgi`, `d3d10core`, `nvapi64` and `atidxx64`
 DLLs). The upstream Gcenx Wine Staging build has neither D3DMetal nor DXVK
@@ -82,10 +82,8 @@ symlinks are needed and MoltenVK is not replaced. `--gptk` is rejected, and
 there is no `WineD3D` folder. The engine version is set with `SIKARUGIR_ENGINE`
 (default `WS12WineSikarugir11.0_1`).
 
-The Mac test has passed with `crossover` and D3DMetal, but the default engine
-stays `gptk` until prebuilt `crossover` libraries are published: the
-`crossover` engine needs a Wine folder built locally with
-`scripts/build_crossover_wine.sh`.
+The default engine is now `crossover`: it needs a Wine folder built locally with
+`scripts/build_crossover_wine.sh`, and merges D3DMetal from a mounted Game Porting Toolkit when one is found.
 
 ### Building
 
@@ -101,7 +99,7 @@ stays `gptk` until prebuilt `crossover` libraries are published: the
 | D3DMetal (`staging` and `crossover`) | Apple Game Porting Toolkit (optional) | none |
 
 ```bash
-# Default: Game Porting Toolkit 3.0-3 (D3DMetal included)
+# Default: locally built CrossOver Wine with D3DMetal when a Game Porting Toolkit is mounted
 ./scripts/build_libraries.sh
 
 # Wine Staging without D3DMetal
