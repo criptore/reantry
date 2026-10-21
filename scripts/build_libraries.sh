@@ -26,10 +26,10 @@ set -euo pipefail
 #                    or its "redist" folder. Download it from
 #                    https://developer.apple.com/download/all/?q=game%20porting%20toolkit
 #   --version X.Y.Z  Version written to WhiskyWineVersion.plist. Defaults to today's date
-#                    as YYYY.M.D (2026.10.20), which is higher than the 11.18.0 installed
-#                    by the fallback. Must increase on every publish so installed apps
-#                    offer the update: for a second build on the same day use a higher
-#                    patch number, e.g. 2026.10.2001 (see docs/Releasing.md).
+#                    as YYYY.M.(D*100) (2026.10.2000), which is higher than the 11.18.0
+#                    installed by the fallback. Must increase on every publish so installed
+#                    apps offer the update: for a second build on the same day add one to
+#                    the patch number, e.g. 2026.10.2001 (see docs/Releasing.md).
 #   --publish        Upload Libraries.tar.gz and WhiskyWineVersion.plist to the
 #                    "libraries" release with the GitHub CLI (gh).
 #
@@ -110,8 +110,8 @@ if [ "$ENGINE" = "sikarugir" ] && [ -n "$GPTK_PATH" ]; then
 fi
 
 if [ -z "$LIBRARIES_VERSION" ]; then
-    # YYYY.M.D without leading zeros
-    LIBRARIES_VERSION="$(date +%Y).$((10#$(date +%m))).$((10#$(date +%d)))"
+    # YYYY.M.(D*100), leaving the last two digits for more builds on the same day
+    LIBRARIES_VERSION="$(date +%Y).$((10#$(date +%m))).$((10#$(date +%d) * 100))"
 fi
 if ! [[ "$LIBRARIES_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     echo "Error: version must look like X.Y.Z, got '$LIBRARIES_VERSION'"
