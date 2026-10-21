@@ -50,7 +50,7 @@ extension FileHandle {
 
         // The label already names the product, so only the version follows it
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-        header += "Reantry Version: \(version ?? "WhiskyCmd")\n"
+        header += "Reantry Version: \(version ?? "unknown (WhiskyCmd)")\n"
         header += "Date: \(ISO8601DateFormatter().string(from: Date.now))\n"
         header += "macOS Version: \(macOSVersion.majorVersion).\(macOSVersion.minorVersion).\(macOSVersion.patchVersion)\n\n"
         write(line: header)
