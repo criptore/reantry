@@ -8748,6 +8748,22 @@
         }
       }
     },
+    "diagnostics.copyReport" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Diagnostic Report"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier le rapport de diagnostic"
+          }
+        }
+      }
+    },
     "environment.add" : {
       "localizations" : {
         "ar" : {

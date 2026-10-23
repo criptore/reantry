@@ -107,6 +107,13 @@ struct WhiskyApp: App {
                         openURL(url)
                     }
                 }
+                Divider()
+                Button("open.logs") {
+                    WhiskyApp.openLogsFolder()
+                }
+                Button("diagnostics.copyReport") {
+                    WhiskyApp.copyDiagnosticReport()
+                }
             }
         }
         Settings {
@@ -126,6 +133,17 @@ struct WhiskyApp: App {
 
     static func openLogsFolder() {
         NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: Wine.logsFolder.path)
+    }
+
+    /// Copies a report about the app, the Mac and optionally a bottle, to paste in a bug report
+    static func copyDiagnosticReport(bottle: Bottle? = nil) {
+        Task.detached(priority: .userInitiated) {
+            let report = Wine.diagnosticReport(bottle: bottle)
+            await MainActor.run {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(report, forType: .string)
+            }
+        }
     }
 
     static func deleteOldLogs() {
