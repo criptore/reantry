@@ -8844,6 +8844,22 @@
         }
       }
     },
+    "diagnostics.reportCopied" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagnostic report copied to the clipboard"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rapport de diagnostic copié dans le presse-papiers"
+          }
+        }
+      }
+    },
     "environment.add" : {
       "localizations" : {
         "ar" : {

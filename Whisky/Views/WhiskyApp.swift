@@ -142,6 +142,11 @@ struct WhiskyApp: App {
             await MainActor.run {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(report, forType: .string)
+
+                let alert = NSAlert()
+                alert.messageText = String(localized: "diagnostics.reportCopied")
+                alert.addButton(withTitle: String(localized: "button.ok"))
+                alert.runModal()
             }
         }
     }
