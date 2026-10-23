@@ -29,7 +29,7 @@ on [Whisky](https://github.com/Whisky-App/Whisky) by Isaac Marovitz and on
   be installed side by side, and each bottle can use its own.
 - **Steam support.** The default Wine is built from the CrossOver sources by
   CodeWeavers, which include the macOS and Steam fixes that upstream Wine lacks.
-- **A command-line tool.** `ReantryCmd` creates and configures bottles, runs
+- **A command-line tool.** `reantry` creates and configures bottles, runs
   programs and shows logs from the terminal.
 - **Update checks** for the app (Sparkle) and for the Wine libraries.
 
@@ -57,9 +57,12 @@ on [Whisky](https://github.com/Whisky-App/Whisky) by Isaac Marovitz and on
    If macOS still refuses to open it, sign it locally:
    `codesign --force --deep --sign - /Applications/Reantry.app`.
 
-Already using an earlier build named `Whisky.app` or `Moonshine.app`? It keeps
-updating itself in place, and Reantry.app uses the same bottles, settings and
-Wine libraries, so you can switch at any time.
+Already using an earlier build named `Whisky.app` or `Moonshine.app`? Updating
+it from the app keeps it under its old name, which is fine: it is the same app.
+If you download Reantry.app by hand instead, quit and delete the old
+`Whisky.app` or `Moonshine.app` first. Both share the same app identifier and
+would conflict if installed side by side. Your bottles, settings and Wine
+libraries are kept, and Reantry.app picks them up.
 
 ## Getting started
 
@@ -104,10 +107,10 @@ log (**Open Logs Folder** in the File menu, `Cmd+L`) for a bug report.
 
 ## Command line
 
-`ReantryCmd` works with the same bottles as the app. It is published as a
-separate download on each release and also sits inside the app: choose
-**Install Reantry CLI...** in the app menu to make it available as `reantry`
-in your terminal.
+The `reantry` command works with the same bottles as the app. It is published
+as a separate download (`ReantryCmd`) on each release and also sits inside the
+app: choose **Install Reantry CLI...** in the app menu to make it available as
+`reantry` in your terminal.
 
 ```bash
 reantry wine status                    # is Wine installed, and is there an update?
