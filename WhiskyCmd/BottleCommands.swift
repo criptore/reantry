@@ -106,8 +106,14 @@ extension Whisky {
             } catch {
                 throw CLI.fail("The bottle was created, but setting up Steam failed: \(error.localizedDescription)")
             }
-            Console.out("Steam is installed and pinned. Run it with: ReantryCmd run \"\(bottle.settings.name)\" "
-                        + "\"\(SteamSetup.steamExecutable(in: bottle).path(percentEncoded: false))\"")
+            let steamPath = SteamSetup.steamExecutable(in: bottle).path(percentEncoded: false)
+            Console.out("Steam is installed and pinned. Run it with: "
+                        + "reantry run \(shellQuoted(bottle.settings.name)) \(shellQuoted(steamPath))")
+        }
+
+        /// Quotes `text` for a POSIX shell: single quotes, each single quote inside written as '\''.
+        private func shellQuoted(_ text: String) -> String {
+            "'" + text.replacingOccurrences(of: "'", with: #"'\''"#) + "'"
         }
     }
 
