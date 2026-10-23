@@ -408,6 +408,17 @@ If the private key is lost, users have to download the next version manually.
 
 ## Publishing an app update
 
+### Versioning
+
+- The git tag `vX.Y.Z` must equal `MARKETING_VERSION` in the Xcode project
+  (tag `v0.3.4` for `MARKETING_VERSION = 0.3.4`).
+- `CURRENT_PROJECT_VERSION` (`CFBundleVersion`, `sparkle:version` in the
+  appcast) must increase on every release, since Sparkle compares it.
+- v0.3.3 shipped build 44 with `MARKETING_VERSION` 0.3.2 (a mismatch), so the
+  next release must use `CURRENT_PROJECT_VERSION` 45 or higher.
+
+### Steps
+
 1. Bump `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in the Xcode project.
    Sparkle compares `CURRENT_PROJECT_VERSION` (`CFBundleVersion`), so it must
    always increase.
