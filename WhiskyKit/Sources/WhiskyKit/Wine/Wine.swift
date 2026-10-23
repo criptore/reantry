@@ -41,7 +41,7 @@ public class Wine {
     }
 
     /// Run a `wine` process with the given arguments and environment variables returning a stream of output
-    private static func runWineProcess(
+    static func runWineProcess(
         name: String? = nil, args: [String], environment: [String: String] = [:],
         fileHandle: FileHandle?, directory: URL? = nil, binFolder: URL = WhiskyWineInstaller.binFolder
     ) throws -> AsyncStream<ProcessOutput> {
@@ -110,24 +110,7 @@ public class Wine {
             try enableWineD3D(bottle: bottle)
         }
 
-        let (logURL, fileHandle) = try makeLogFile()
-        fileHandle.writeApplicaitonInfo()
-        fileHandle.writeInfo(for: bottle)
-        let launchDate = Date.now
-        var failure: WineLaunchFailure?
-        for await output in try Self.runWineProcess(
-            name: url.lastPathComponent, args: [url.path(percentEncoded: false)] + args,
-            environment: constructWineEnvironment(for: bottle, environment: environment),
-            fileHandle: fileHandle, directory: url.deletingLastPathComponent(),
-            binFolder: WhiskyWineInstaller.binFolder(for: bottle.settings.wineRuntime)
-        ) {
-            guard case .terminated(let process) = output else { continue }
-            failure = WineLaunchFailure(
-                process: process, programName: url.lastPathComponent, bottle: bottle,
-                logURL: logURL, launchDate: launchDate
-            )
-        }
-        return failure
+        return try await runLoggingLaunchFailure(at: url, args: args, bottle: bottle, environment: environment)
     }
 
     public static func generateRunCommand(

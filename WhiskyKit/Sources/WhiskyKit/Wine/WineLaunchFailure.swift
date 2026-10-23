@@ -78,3 +78,30 @@ public struct WineLaunchFailure: Sendable {
         }
     }
 }
+
+extension Wine {
+    /// Runs `wine <url> <args>` until it stops, logging all its output.
+    /// Returns how Wine failed if it stopped at launch.
+    static func runLoggingLaunchFailure(
+        at url: URL, args: [String], bottle: Bottle, environment: [String: String]
+    ) async throws -> WineLaunchFailure? {
+        let (logURL, fileHandle) = try makeLogFile()
+        fileHandle.writeApplicaitonInfo()
+        fileHandle.writeInfo(for: bottle)
+        let launchDate = Date.now
+        var failure: WineLaunchFailure?
+        for await output in try runWineProcess(
+            name: url.lastPathComponent, args: [url.path(percentEncoded: false)] + args,
+            environment: constructWineEnvironment(for: bottle, environment: environment),
+            fileHandle: fileHandle, directory: url.deletingLastPathComponent(),
+            binFolder: WhiskyWineInstaller.binFolder(for: bottle.settings.wineRuntime)
+        ) {
+            guard case .terminated(let process) = output else { continue }
+            failure = WineLaunchFailure(
+                process: process, programName: url.lastPathComponent, bottle: bottle,
+                logURL: logURL, launchDate: launchDate
+            )
+        }
+        return failure
+    }
+}
