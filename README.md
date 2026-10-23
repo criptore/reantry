@@ -84,12 +84,20 @@ You can open the wizard again at any time from the app menu with **Setup...**.
 
 ### Install Steam
 
-1. Create a bottle for Steam, using Windows 10.
-2. Download `SteamSetup.exe` from
-   [store.steampowered.com](https://store.steampowered.com/about/), click
-   **Run...** in the bottle and pick it.
-3. Once the installer is done, start Steam from **Installed Programs**. On
-   its first start, Steam updates itself and then shows the login window.
+1. Click **Create Bottle**, give it a name and turn on **Set up for Steam**.
+   Reantry sets Windows 10, D3DMetal and Retina mode, downloads the Steam
+   installer, installs Steam and pins it. The bottle shows the progress in the
+   sidebar.
+2. Start Steam from its pin. On its first start, Steam updates itself and
+   then shows the login window.
+
+To install Steam by hand instead, download `SteamSetup.exe` from
+[store.steampowered.com](https://store.steampowered.com/about/), click
+**Run...** in a Windows 10 bottle and pick it.
+
+Steam asks Windows to start it at login. Reantry removes that entry before
+it starts a program, because Wine would otherwise start a hidden Steam in the
+background and keep the bottle busy.
 
 If the Steam window stays black, try another graphics backend and keep the
 log (**Open Logs Folder** in the File menu, `Cmd+L`) for a bug report.
@@ -104,6 +112,7 @@ in your terminal.
 ```bash
 reantry wine status                    # is Wine installed, and is there an update?
 reantry create test --windows win10    # new bottle
+reantry create games --steam           # new bottle with Steam installed
 reantry config test --backend dxvk     # d3dmetal, dxvk or wined3d
 reantry run --wait test game.exe       # run a program and wait for it
 reantry logs --last                    # newest log

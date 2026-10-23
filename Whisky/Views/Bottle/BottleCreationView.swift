@@ -27,6 +27,7 @@ struct BottleCreationView: View {
     @State private var newBottleURL: URL = UserDefaults.standard.url(forKey: "defaultBottleLocation")
                                            ?? BottleData.defaultBottleDir
     @State private var nameValid: Bool = false
+    @State private var setUpSteam: Bool = false
 
     @Environment(\.dismiss) private var dismiss
 
@@ -41,6 +42,21 @@ struct BottleCreationView: View {
                 Picker("create.win", selection: $newBottleVersion) {
                     ForEach(WinVersion.allCases.reversed(), id: \.self) {
                         Text($0.pretty())
+                    }
+                }
+                .disabled(setUpSteam)
+
+                Toggle(isOn: $setUpSteam) {
+                    VStack(alignment: .leading) {
+                        Text("create.steam")
+                        Text("create.steam.info")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .onChange(of: setUpSteam) { _, steam in
+                    if steam {
+                        newBottleVersion = .win10
                     }
                 }
 
@@ -90,7 +106,8 @@ struct BottleCreationView: View {
     func submit() {
         newlyCreatedBottleURL = BottleVM.shared.createNewBottle(bottleName: newBottleName,
                                                                 winVersion: newBottleVersion,
-                                                                bottleURL: newBottleURL)
+                                                                bottleURL: newBottleURL,
+                                                                setUpSteam: setUpSteam)
         dismiss()
     }
 }

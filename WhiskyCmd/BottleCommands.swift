@@ -55,8 +55,14 @@ extension Whisky {
         @Option(help: "Windows version of the bottle: winxp64, win7, win8, win81, win10 or win11.")
         var windows: String = "win10"
 
+        @Flag(help: """
+        Set the bottle up for Steam: Windows 10 (whatever --windows says), D3DMetal and Retina mode, \
+        then download and install Steam, and pin it.
+        """)
+        var steam = false
+
         mutating func run() async throws {
-            let winVersion = try CLI.windowsVersion(windows)
+            let winVersion: WinVersion = try steam ? .win10 : CLI.windowsVersion(windows)
             try CLI.requireWine()
 
             var bottlesList = BottleData()
@@ -86,6 +92,22 @@ extension Whisky {
                 throw CLI.fail("Failed to create the bottle: \(error)")
             }
             Console.out("Created new bottle \"\(name)\" at \(bottleURL.path(percentEncoded: false)).")
+            if steam {
+                try await installSteam(in: Bottle(bottleUrl: bottleURL))
+            }
+        }
+
+        /// Sets the new bottle up for Steam. The bottle is kept when this fails.
+        private func installSteam(in bottle: Bottle) async throws {
+            do {
+                try await SteamSetup.setUp(bottle: bottle) { step in
+                    Console.out("\(step)...")
+                }
+            } catch {
+                throw CLI.fail("The bottle was created, but setting up Steam failed: \(error.localizedDescription)")
+            }
+            Console.out("Steam is installed and pinned. Run it with: ReantryCmd run \"\(bottle.settings.name)\" "
+                        + "\"\(SteamSetup.steamExecutable(in: bottle).path(percentEncoded: false))\"")
         }
     }
 
