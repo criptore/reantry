@@ -26,7 +26,7 @@ import ArgumentParser
 @main
 struct Whisky: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "ReantryCmd",
+        commandName: "reantry",
         abstract: "A CLI interface for Reantry.",
         subcommands: [List.self,
                       Create.self,
