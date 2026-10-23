@@ -35,10 +35,11 @@ Reantry is a native SwiftUI wrapper for Wine on macOS. Run Windows games and app
 
 ## Quick Start
 
-### Method 1: Install from DMG (recommended)
+### Method 1: Install the release build (recommended)
 
-1. Download `Reantry.dmg` from the [latest release](https://github.com/criptore/reantry/releases/latest)
-2. Open the DMG and drag **Reantry.app** to **Applications**
+1. Download `Reantry.app.zip` from the [latest release](https://github.com/criptore/reantry/releases/latest)
+2. Unzip it (double-click in Finder) and drag the extracted **Whisky.app** to **Applications**.
+   The bundle inside the zip is still named `Whisky.app`.
 3. Launch the app — the setup wizard will automatically:
    - Download the Wine libraries from the [`libraries` release](https://github.com/criptore/reantry/releases/tag/libraries)
      (or [Wine Staging 11.18](https://github.com/Gcenx/macOS_Wine_builds/releases/tag/11.18) from Gcenx if that release is not published yet)
@@ -53,7 +54,8 @@ No manual Wine installation, no terminal commands, no patching required.
 > xattr -cr /Applications/Whisky.app
 > codesign --force --deep --sign - /Applications/Whisky.app
 > ```
-> (The bundle is still named `Whisky.app`.)
+> If you built from source (Method 2), the app is installed as
+> `/Applications/Reantry.app`: use that path instead.
 
 ### Method 2: Build from source
 
@@ -87,7 +89,7 @@ To create a distributable DMG locally:
 ./scripts/build_dmg.sh
 ```
 
-This builds a Release configuration, stages the app with an Applications symlink, and outputs `Reantry.dmg` in the project root.
+This builds a Release configuration, stages the app with an Applications symlink, and outputs `Moonshine.dmg` in the project root. Releases do not publish a DMG.
 
 ### Homebrew
 
