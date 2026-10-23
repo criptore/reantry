@@ -6572,6 +6572,38 @@
         }
       }
     },
+    "config.retinaMode.info" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uses the full screen resolution. Games may need their resolution raised in their own settings."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilise la résolution complète de l’écran. Les jeux peuvent demander d’augmenter leur résolution dans leurs propres réglages."
+          }
+        }
+      }
+    },
+    "config.retinaMode.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High Resolution (Retina)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haute résolution (Retina)"
+          }
+        }
+      }
+    },
     "config.title.dxvk" : {
       "localizations" : {
         "ar" : {

@@ -30,6 +30,8 @@ struct ConfigView: View {
     @ObservedObject var bottle: Bottle
     @State private var buildVersion: Int = 0
     @State private var retinaMode: Bool = false
+    /// The retina mode saved in the bottle, `nil` until it was read
+    @State private var storedRetinaMode: Bool?
     @State private var dpiConfig: Int = 96
     @State private var winVersionLoadingState: LoadingState = .loading
     @State private var buildVersionLoadingState: LoadingState = .loading
@@ -67,20 +69,16 @@ struct ConfigView: View {
                             }
                         }
                 }
-                SettingItemView(title: "config.retinaMode", loadingState: retinaModeLoadingState) {
-                    Toggle("config.retinaMode", isOn: $retinaMode)
-                        .onChange(of: retinaMode, { _, newValue in
-                            Task(priority: .userInitiated) {
-                                retinaModeLoadingState = .modifying
-                                do {
-                                    try await Wine.changeRetinaMode(bottle: bottle, retinaMode: newValue)
-                                    retinaModeLoadingState = .success
-                                } catch {
-                                    print("Failed to change build version")
-                                    retinaModeLoadingState = .failed
-                                }
-                            }
-                        })
+                SettingItemView(
+                    title: "config.retinaMode.title", loadingState: retinaModeLoadingState,
+                    info: "config.retinaMode.info"
+                ) {
+                    Toggle("config.retinaMode.title", isOn: $retinaMode)
+                        .onChange(of: retinaMode) { _, newValue in
+                            // The value just read from the bottle needs no writing back
+                            guard newValue != storedRetinaMode else { return }
+                            changeRetinaMode(newValue)
+                        }
                 }
                 Picker("config.enhancedSync", selection: $bottle.settings.enhancedSync) {
                     Text("config.enhancedSync.none").tag(EnhancedSync.none)
@@ -199,7 +197,9 @@ struct ConfigView: View {
 
             Task(priority: .userInitiated) {
                 do {
-                    retinaMode = try await Wine.retinaMode(bottle: bottle)
+                    let value = try await Wine.retinaMode(bottle: bottle)
+                    storedRetinaMode = value
+                    retinaMode = value
                     retinaModeLoadingState = .success
                 } catch {
                     print(error)
@@ -246,6 +246,20 @@ struct ConfigView: View {
                         dpiConfigLoadingState = .failed
                     }
                 }
+            }
+        }
+    }
+
+    func changeRetinaMode(_ newValue: Bool) {
+        retinaModeLoadingState = .modifying
+        Task(priority: .userInitiated) {
+            do {
+                try await Wine.changeRetinaMode(bottle: bottle, retinaMode: newValue)
+                storedRetinaMode = newValue
+                retinaModeLoadingState = .success
+            } catch {
+                print("Failed to change retina mode: \(error)")
+                retinaModeLoadingState = .failed
             }
         }
     }
@@ -336,6 +350,7 @@ struct DPIConfigSheetView: View {
 struct SettingItemView<Content: View>: View {
     let title: String.LocalizationValue
     let loadingState: LoadingState
+    var info: String.LocalizationValue?
     @ViewBuilder var content: () -> Content
 
     @Namespace private var viewId
@@ -343,9 +358,17 @@ struct SettingItemView<Content: View>: View {
 
     var body: some View {
         HStack {
-            Text(String(localized: title))
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading) {
+                Text(String(localized: title))
+                    .multilineTextAlignment(.leading)
+                if let info {
+                    Text(String(localized: info))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack {
                 switch loadingState {
