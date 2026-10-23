@@ -32,7 +32,12 @@ final class BottleVM: ObservableObject, @unchecked Sendable {
 
     @MainActor
     func loadBottles() {
-        bottles = bottlesList.loadBottles()
+        let loaded = bottlesList.loadBottles()
+        // A saved bottle still being set up for Steam stays in progress
+        for bottle in loaded where steamSetupSteps[bottle.url] != nil {
+            bottle.inFlight = true
+        }
+        bottles = loaded
     }
 
     func countActive() -> Int {
@@ -55,17 +60,24 @@ final class BottleVM: ObservableObject, @unchecked Sendable {
                     self.bottles.append(bottle)
                 }
 
-                bottle.settings.windowsVersion = winVersion
-                bottle.settings.name = bottleName
+                await MainActor.run {
+                    bottle.settings.windowsVersion = winVersion
+                    bottle.settings.name = bottleName
+                }
                 try await Wine.changeWinVersion(bottle: bottle, win: winVersion)
                 let wineVer = try await Wine.wineVersion()
-                bottle.settings.wineVersion = SemanticVersion(wineVer) ?? SemanticVersion(0, 0, 0)
+                await MainActor.run {
+                    bottle.settings.wineVersion = SemanticVersion(wineVer) ?? SemanticVersion(0, 0, 0)
+                    // Add record before the Steam setup, so that quitting during it leaves no orphan folder
+                    self.bottlesList.paths.append(newBottleDir)
+                    if setUpSteam {
+                        self.steamSetupSteps[newBottleDir] = .configuring
+                    }
+                }
                 if setUpSteam {
                     steamError = await self.installSteam(in: bottle)
                 }
-                // Add record
                 await MainActor.run {
-                    self.bottlesList.paths.append(newBottleDir)
                     self.loadBottles()
                 }
                 if let steamError {
@@ -73,6 +85,8 @@ final class BottleVM: ObservableObject, @unchecked Sendable {
                 }
             } catch {
                 print("Failed to create new bottle: \(error)")
+                // The bottle is not saved yet, its folder is of no use
+                try? FileManager.default.removeItem(at: newBottleDir)
                 if let bottle = bottleId {
                     await MainActor.run {
                         if let index = self.bottles.firstIndex(of: bottle) {
