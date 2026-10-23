@@ -41,6 +41,12 @@ struct BottleListEntry: View {
                 }
             }
             .contextMenu {
+                Button("button.stopAll", systemImage: "stop.fill") {
+                    WhiskyApp.confirmStopBottle(bottle)
+                }
+                .disabled(!bottle.isAvailable)
+                .labelStyle(.titleAndIcon)
+                Divider()
                 Button("button.rename", systemImage: "pencil.line") {
                     showBottleRename.toggle()
                 }
