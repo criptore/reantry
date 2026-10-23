@@ -83,7 +83,7 @@ struct FileOpenView: View {
                         try await Wine.runBatchFile(url: fileURL,
                                                     bottle: bottle)
                     } else {
-                        try await Wine.runProgram(at: fileURL, bottle: bottle)
+                        try await Wine.runProgram(at: fileURL, bottle: bottle)?.showAlert()
                     }
                 } catch {
                     print(error)

@@ -102,6 +102,10 @@ struct BottleListEntry: View {
                 }
                 .disabled(!bottle.isAvailable)
                 .labelStyle(.titleAndIcon)
+                Button("diagnostics.copyReport", systemImage: "stethoscope") {
+                    WhiskyApp.copyDiagnosticReport(bottle: bottle)
+                }
+                .labelStyle(.titleAndIcon)
             }
     }
 
