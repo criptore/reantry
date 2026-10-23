@@ -9297,109 +9297,109 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تثبيت Moonshine CLI..."
+            "value" : "تثبيت Reantry CLI..."
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nainstalovat Moonshine CLI..."
+            "value" : "Nainstalovat Reantry CLI..."
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installer Moonshine CLI..."
+            "value" : "Installer Reantry CLI..."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine CLI installieren..."
+            "value" : "Reantry CLI installieren..."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Install Moonshine CLI..."
+            "value" : "Install Reantry CLI..."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Instalar Moonshine CLI..."
+            "value" : "Instalar Reantry CLI..."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Asenna Moonshine CLI..."
+            "value" : "Asenna Reantry CLI..."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installer Moonshine CLI..."
+            "value" : "Installer Reantry CLI..."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installa Moonshine CLI..."
+            "value" : "Installa Reantry CLI..."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine CLI をインストール..."
+            "value" : "Reantry CLI をインストール..."
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine CLI 설치..."
+            "value" : "Reantry CLI 설치..."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installeer de Moonshine CLI..."
+            "value" : "Installeer de Reantry CLI..."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zainstaluj Moonshine w formie CLI..."
+            "value" : "Zainstaluj Reantry w formie CLI..."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Instalar o Moonshine CLI..."
+            "value" : "Instalar o Reantry CLI..."
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Instalar Moonshine CLI..."
+            "value" : "Instalar Reantry CLI..."
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Instalează CLI Moonshine..."
+            "value" : "Instalează CLI Reantry..."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Установить Moonshine CLI..."
+            "value" : "Установить Reantry CLI..."
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine CLI'i Yükle..."
+            "value" : "Reantry CLI'i Yükle..."
           }
         },
         "uk" : {
@@ -9411,19 +9411,19 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cài đặt Moonshine CLI..."
+            "value" : "Cài đặt Reantry CLI..."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "安装 Moonshine CLI..."
+            "value" : "安装 Reantry CLI..."
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "安裝Moonshine CLI⋯"
+            "value" : "安裝Reantry CLI⋯"
           }
         }
       }
@@ -14467,133 +14467,133 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "إنهاء عمليات Wine عند إغلاق Moonshine"
+            "value" : "إنهاء عمليات Wine عند إغلاق Reantry"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ukončit Wine procesy při uzavření Moonshine"
+            "value" : "Ukončit Wine procesy při uzavření Reantry"
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Afslut Wine-processer, når Moonshine lukkes"
+            "value" : "Afslut Wine-processer, når Reantry lukkes"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wine-Prozesse beim Schließen von Moonshine beenden"
+            "value" : "Wine-Prozesse beim Schließen von Reantry beenden"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Terminate Wine processes when Moonshine closes"
+            "value" : "Terminate Wine processes when Reantry closes"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Terminar procesos de Wine cuando Moonshine cierre"
+            "value" : "Terminar procesos de Wine cuando Reantry cierre"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sulje Wine-prosessit kun Moonshine suljetaan"
+            "value" : "Sulje Wine-prosessit kun Reantry suljetaan"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Terminer les processus de Wine à la fermeture de Moonshine"
+            "value" : "Terminer les processus de Wine à la fermeture de Reantry"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Termina i processi Wine quando Moonshine chiude"
+            "value" : "Termina i processi Wine quando Reantry chiude"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine の終了時に Wine の全プロセスを停止する"
+            "value" : "Reantry の終了時に Wine の全プロセスを停止する"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine를 종료할 때 Wine 프로세스도 종료"
+            "value" : "Reantry를 종료할 때 Wine 프로세스도 종료"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beëindig de Wine processen wanneer Moonshine sluit"
+            "value" : "Beëindig de Wine processen wanneer Reantry sluit"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zakończ proces Wine, gdy Moonshine zostanie zamknięte"
+            "value" : "Zakończ proces Wine, gdy Reantry zostanie zamknięte"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Terminate Wine processes when Moonshine closes"
+            "value" : "Terminate Wine processes when Reantry closes"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Termine processos Wine quando o Moonshine fechar"
+            "value" : "Termine processos Wine quando o Reantry fechar"
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Închide procesele Wine atunci când Moonshine se închide"
+            "value" : "Închide procesele Wine atunci când Reantry se închide"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Закрывать процессы Wine при закрытии Moonshine"
+            "value" : "Закрывать процессы Wine при закрытии Reantry"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine kapandığında Wine işlemlerini sonlandır"
+            "value" : "Reantry kapandığında Wine işlemlerini sonlandır"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Завершити процеси Wine, коли закривається Moonshine"
+            "value" : "Завершити процеси Wine, коли закривається Reantry"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Buộc Wine phải tắt khi Moonshine tắt"
+            "value" : "Buộc Wine phải tắt khi Reantry tắt"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "关闭 Moonshine 时结束 Wine 进程"
+            "value" : "关闭 Reantry 时结束 Wine 进程"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine 關閉時終止 Wine 進程"
+            "value" : "Reantry 關閉時終止 Wine 進程"
           }
         }
       }
@@ -14603,133 +14603,133 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "التحقق تلقائيا من تحديثات Moonshine"
+            "value" : "التحقق تلقائيا من تحديثات Reantry"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automaticky kontrolovat Moonshine aktualizace"
+            "value" : "Automaticky kontrolovat Reantry aktualizace"
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Søg automatisk efter Moonshine-opdateringer"
+            "value" : "Søg automatisk efter Reantry-opdateringer"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automatisch nach Updates für Moonshine suchen"
+            "value" : "Automatisch nach Updates für Reantry suchen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automatically check for Moonshine updates"
+            "value" : "Automatically check for Reantry updates"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Buscar actualizaciones de Moonshine automáticamente"
+            "value" : "Buscar actualizaciones de Reantry automáticamente"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automaattisesti tarkista Moonshine päivityksien varalta"
+            "value" : "Automaattisesti tarkista Reantry päivityksien varalta"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rechercher automatiquement les mises à jour de Moonshine"
+            "value" : "Rechercher automatiquement les mises à jour de Reantry"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Controlla automaticamente aggiornamenti di Moonshine"
+            "value" : "Controlla automaticamente aggiornamenti di Reantry"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine のアップデートを自動的に確認する"
+            "value" : "Reantry のアップデートを自動的に確認する"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine 업데이트를 자동으로 확인"
+            "value" : "Reantry 업데이트를 자동으로 확인"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automatisch controleren op Moonshine updates"
+            "value" : "Automatisch controleren op Reantry updates"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automatycznie sprawdzaj aktualizacje Moonshine"
+            "value" : "Automatycznie sprawdzaj aktualizacje Reantry"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automatically check for Moonshine updates"
+            "value" : "Automatically check for Reantry updates"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verifique automaticamente para atualizações do Moonshine"
+            "value" : "Verifique automaticamente para atualizações do Reantry"
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verifică automat pentru actualizări Moonshine"
+            "value" : "Verifică automat pentru actualizări Reantry"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Автоматически проверять на наличие обновлений Moonshine"
+            "value" : "Автоматически проверять на наличие обновлений Reantry"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine güncellemelerini otomatik olarak kontrol et"
+            "value" : "Reantry güncellemelerini otomatik olarak kontrol et"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Автоматична перевірка оновлень Moonshine"
+            "value" : "Автоматична перевірка оновлень Reantry"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tự động kiểm tra bản cập nhật của Moonshine"
+            "value" : "Tự động kiểm tra bản cập nhật của Reantry"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自动检查Moonshine更新"
+            "value" : "自动检查Reantry更新"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自動檢查 Moonshine 更新"
+            "value" : "自動檢查 Reantry 更新"
           }
         }
       }
@@ -14739,85 +14739,85 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "التحقق تلقائيا من تحديثات MoonshineWine"
+            "value" : "التحقق تلقائيا من تحديثات Reantry Wine"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automaticky vyhledávat MoonshineWine aktualizace"
+            "value" : "Automaticky vyhledávat Reantry Wine aktualizace"
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Søg automatisk efter MoonshineWine-opdateringer"
+            "value" : "Søg automatisk efter Reantry Wine-opdateringer"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automatisch nach Updates für MoonshineWine suchen"
+            "value" : "Automatisch nach Updates für Reantry Wine suchen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automatically check for MoonshineWine updates"
+            "value" : "Automatically check for Reantry Wine updates"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Buscar actualizaciones de MoonshineWine automáticamente"
+            "value" : "Buscar actualizaciones de Reantry Wine automáticamente"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automaattisesti tarkista MoonshineWine päivityksien varalta"
+            "value" : "Automaattisesti tarkista Reantry Wine päivityksien varalta"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rechercher automatiquement les mises à jour de MoonshineWine"
+            "value" : "Rechercher automatiquement les mises à jour de Reantry Wine"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Controlla automaticamente aggiornamenti di MoonshineWine"
+            "value" : "Controlla automaticamente aggiornamenti di Reantry Wine"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MoonshineWine のアップデートを自動的に確認する"
+            "value" : "Reantry Wine のアップデートを自動的に確認する"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MoonshineWine 업데이트를 자동으로 확인"
+            "value" : "Reantry Wine 업데이트를 자동으로 확인"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automatisch controleren op MoonshineWine updates"
+            "value" : "Automatisch controleren op Reantry Wine updates"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automatycznie sprawdzaj dostępność aktualizacji MoonshineWine"
+            "value" : "Automatycznie sprawdzaj dostępność aktualizacji Reantry Wine"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verificar automaticamente atualizações do MoonshineWine"
+            "value" : "Verificar automaticamente atualizações do Reantry Wine"
           }
         },
         "pt-PT" : {
@@ -14829,13 +14829,13 @@
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verifică automat pentru actualizări MoonshineWine"
+            "value" : "Verifică automat pentru actualizări Reantry Wine"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Автоматически проверять на наличие обновлений MoonshineWine"
+            "value" : "Автоматически проверять на наличие обновлений Reantry Wine"
           }
         },
         "tr" : {
@@ -14847,25 +14847,25 @@
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Автоматично перевіряти оновлення MoonshineWine"
+            "value" : "Автоматично перевіряти оновлення Reantry Wine"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tự động kiểm tra bản cập nhật MoonshineWine"
+            "value" : "Tự động kiểm tra bản cập nhật Reantry Wine"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自动检查 MoonshineWine 更新"
+            "value" : "自动检查 Reantry Wine 更新"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自動檢查 MoonshineWine 更新"
+            "value" : "自動檢查 Reantry Wine 更新"
           }
         }
       }
@@ -16371,133 +16371,133 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "إدارة التبعيات المطلوبة لـMoonshine."
+            "value" : "إدارة التبعيات المطلوبة لـReantry."
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Spravovat požadované závislosti Moonshine."
+            "value" : "Spravovat požadované závislosti Reantry."
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Administrer Moonshine's nødvendige afhængigheder."
+            "value" : "Administrer Reantry's nødvendige afhængigheder."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verwalte Moonshines erforderliche Abhängigkeiten."
+            "value" : "Verwalte Reantrys erforderliche Abhängigkeiten."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manage Moonshine's required dependencies."
+            "value" : "Manage Reantry's required dependencies."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Administre las dependencias requeridas de Moonshine."
+            "value" : "Administre las dependencias requeridas de Reantry."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hallitse Moonshine tarvittavia riippuvuuksia."
+            "value" : "Hallitse Reantry tarvittavia riippuvuuksia."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gérer les dépendances requises de Moonshine."
+            "value" : "Gérer les dépendances requises de Reantry."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gestisci le dipendenze richieste da Moonshine."
+            "value" : "Gestisci le dipendenze richieste da Reantry."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine に必要な依存関係を管理します。"
+            "value" : "Reantry に必要な依存関係を管理します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine의 필수 의존성 관리하기."
+            "value" : "Reantry의 필수 의존성 관리하기."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beheer Moonshine's vereiste dependencies."
+            "value" : "Beheer Reantry's vereiste dependencies."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zarządzaj wymaganymi zależnościami Moonshine."
+            "value" : "Zarządzaj wymaganymi zależnościami Reantry."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gerir as dependências necessárias do Moonshine."
+            "value" : "Gerir as dependências necessárias do Reantry."
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gerencie dependências necessárias do Moonshine."
+            "value" : "Gerencie dependências necessárias do Reantry."
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gestionează dependențele cerute de Moonshine."
+            "value" : "Gestionează dependențele cerute de Reantry."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Управление требуемыми зависимостями Moonshine."
+            "value" : "Управление требуемыми зависимостями Reantry."
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine'nin gerekli yazılımlarını düzenle."
+            "value" : "Reantry'nin gerekli yazılımlarını düzenle."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Керування необхідними залежностями Moonshine."
+            "value" : "Керування необхідними залежностями Reantry."
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quản lý những tệp quan trọng của Moonshine."
+            "value" : "Quản lý những tệp quan trọng của Reantry."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "管理 Moonshine 所需依赖"
+            "value" : "管理 Reantry 所需依赖"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "管理Moonshine需要的相依性套件"
+            "value" : "管理Reantry需要的相依性套件"
           }
         }
       }
@@ -16779,133 +16779,133 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "مرحبا بكم في Moonshine"
+            "value" : "مرحبا بكم في Reantry"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vítejte ve Moonshine"
+            "value" : "Vítejte v Reantry"
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Velkommen til Moonshine"
+            "value" : "Velkommen til Reantry"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Willkommen zu Moonshine"
+            "value" : "Willkommen zu Reantry"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Welcome to Moonshine"
+            "value" : "Welcome to Reantry"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bienvenido a Moonshine"
+            "value" : "Bienvenido a Reantry"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tervetuloa käyttämään Moonshine"
+            "value" : "Tervetuloa käyttämään Reantry"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bienvenue sur Moonshine"
+            "value" : "Bienvenue sur Reantry"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Benvenuto su Moonshine"
+            "value" : "Benvenuto su Reantry"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine へようこそ"
+            "value" : "Reantry へようこそ"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine에 오신 것을 환영합니다"
+            "value" : "Reantry에 오신 것을 환영합니다"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Welkom bij Moonshine"
+            "value" : "Welkom bij Reantry"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Witaj w Moonshine"
+            "value" : "Witaj w Reantry"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bem-vindo ao Moonshine"
+            "value" : "Bem-vindo ao Reantry"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bem-vindo ao Moonshine"
+            "value" : "Bem-vindo ao Reantry"
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bine ați venit la Moonshine"
+            "value" : "Bine ați venit la Reantry"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Добро пожаловать в Moonshine"
+            "value" : "Добро пожаловать в Reantry"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine'ye Hoşgeldiniz"
+            "value" : "Reantry'ye Hoşgeldiniz"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ласкаво просимо до Moonshine"
+            "value" : "Ласкаво просимо до Reantry"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chào mừng đến với Moonshine"
+            "value" : "Chào mừng đến với Reantry"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "欢迎使用 Moonshine"
+            "value" : "欢迎使用 Reantry"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "歡迎使用 Moonshine"
+            "value" : "歡迎使用 Reantry"
           }
         }
       }
@@ -17051,13 +17051,13 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تنزيل MoonshineWine"
+            "value" : "تنزيل Reantry Wine"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stahování MoonshineWine"
+            "value" : "Stahování Reantry Wine"
           }
         },
         "da" : {
@@ -17069,31 +17069,31 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MoonshineWine herunterladen"
+            "value" : "Reantry Wine herunterladen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Downloading MoonshineWine"
+            "value" : "Downloading Reantry Wine"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Descargando MoonshineWine"
+            "value" : "Descargando Reantry Wine"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ladataan MoonshineWine"
+            "value" : "Ladataan Reantry Wine"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Téléchargement de MoonshineWine"
+            "value" : "Téléchargement de Reantry Wine"
           }
         },
         "it" : {
@@ -17105,13 +17105,13 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MoonshineWine をダウンロード中"
+            "value" : "Reantry Wine をダウンロード中"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MoonshineWine를 다운로드 중입니다."
+            "value" : "Reantry Wine를 다운로드 중입니다."
           }
         },
         "nl" : {
@@ -17123,7 +17123,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pobieranie MoonshineWine"
+            "value" : "Pobieranie Reantry Wine"
           }
         },
         "pt-BR" : {
@@ -17141,13 +17141,13 @@
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Se descarcă MoonshineWine"
+            "value" : "Se descarcă Reantry Wine"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Скачивание MoonshineWine"
+            "value" : "Скачивание Reantry Wine"
           }
         },
         "tr" : {
@@ -17159,7 +17159,7 @@
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Завантаження MoonshineWine"
+            "value" : "Завантаження Reantry Wine"
           }
         },
         "vi" : {
@@ -17171,13 +17171,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在下载 MoonshineWine"
+            "value" : "正在下载 Reantry Wine"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在下載 MoonshineWine"
+            "value" : "正在下載 Reantry Wine"
           }
         }
       }
@@ -17459,13 +17459,13 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تثبيت MoonshineWine"
+            "value" : "تثبيت Reantry Wine"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Instalace MoonshineWine"
+            "value" : "Instalace Reantry Wine"
           }
         },
         "da" : {
@@ -17477,49 +17477,49 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MoonshineWine wird installiert"
+            "value" : "Reantry Wine wird installiert"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installing MoonshineWine"
+            "value" : "Installing Reantry Wine"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Instalando MoonshineWine"
+            "value" : "Instalando Reantry Wine"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Asennetaan MoonshineWine"
+            "value" : "Asennetaan Reantry Wine"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installation de MoonshineWine"
+            "value" : "Installation de Reantry Wine"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installazione di MoonshineWine"
+            "value" : "Installazione di Reantry Wine"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MoonshineWine をインストール中"
+            "value" : "Reantry Wine をインストール中"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MoonshineWine 설치 중"
+            "value" : "Reantry Wine 설치 중"
           }
         },
         "nl" : {
@@ -17531,7 +17531,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Instalowanie MoonshineWine"
+            "value" : "Instalowanie Reantry Wine"
           }
         },
         "pt-BR" : {
@@ -17549,13 +17549,13 @@
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Se instalează MoonshineWine"
+            "value" : "Se instalează Reantry Wine"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Установка MoonshineWine"
+            "value" : "Установка Reantry Wine"
           }
         },
         "tr" : {
@@ -17567,7 +17567,7 @@
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Встановлення MoonshineWine"
+            "value" : "Встановлення Reantry Wine"
           }
         },
         "vi" : {
@@ -17579,13 +17579,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在安装 MoonshineWine"
+            "value" : "正在安装 Reantry Wine"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在安裝 MoonshineWine"
+            "value" : "正在安裝 Reantry Wine"
           }
         }
       }
@@ -18139,133 +18139,133 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "في بعض الحالات، Moonshine لن يكون قادراً على العمل بشكل صحيح من مجلد مختلف"
+            "value" : "في بعض الحالات، Reantry لن يكون قادراً على العمل بشكل صحيح من مجلد مختلف"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "V některých případech nemusí být Moonshine schopna správně fungovat z jiné složky"
+            "value" : "V některých případech nemusí být Reantry schopna správně fungovat z jiné složky"
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "I nogle tilfælde vil Moonshine ikke være i stand til at fungere korrekt fra en anden mappe"
+            "value" : "I nogle tilfælde vil Reantry ikke være i stand til at fungere korrekt fra en anden mappe"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In manchen Fällen wird Moonshine nicht richtig funktionieren, wenn es in einem anderen Ordner gespeichert ist"
+            "value" : "In manchen Fällen wird Reantry nicht richtig funktionieren, wenn es in einem anderen Ordner gespeichert ist"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In some cases, Moonshine wont't be able to function properly from a different folder"
+            "value" : "In some cases, Reantry wont't be able to function properly from a different folder"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En algunos casos, Moonshine podría no funcionar correctamente desde una carpeta diferente"
+            "value" : "En algunos casos, Reantry podría no funcionar correctamente desde una carpeta diferente"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Joissakin tapauksissa, Moonshine ei ole mahdollista toimia kunnolla muista kansioista"
+            "value" : "Joissakin tapauksissa, Reantry ei ole mahdollista toimia kunnolla muista kansioista"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dans certains cas, Moonshine ne pourra pas fonctionner correctement depuis un dossier différent"
+            "value" : "Dans certains cas, Reantry ne pourra pas fonctionner correctement depuis un dossier différent"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In alcuni casi, Moonshine non potrà funzionare correttamente da un cartella diversa"
+            "value" : "In alcuni casi, Reantry non potrà funzionare correttamente da un cartella diversa"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "場合によっては、異なるフォルダから Moonshine を適切に使用できない場合があります"
+            "value" : "場合によっては、異なるフォルダから Reantry を適切に使用できない場合があります"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "경우에 따라 다른 폴더에서는 Moonshine가 제대로 동작하지 않을 수 있습니다."
+            "value" : "경우에 따라 다른 폴더에서는 Reantry가 제대로 동작하지 않을 수 있습니다."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In sommige gevallen zal Moonshine niet goed kunnen functioneren vanuit een andere map"
+            "value" : "In sommige gevallen zal Reantry niet goed kunnen functioneren vanuit een andere map"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "W niektórych przypadkach Moonshine nie będzie w stanie działać poprawnie w innym folderze"
+            "value" : "W niektórych przypadkach Reantry nie będzie w stanie działać poprawnie w innym folderze"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Em alguns casos, o Moonshine pode não funcionar corretamente numa pasta diferente"
+            "value" : "Em alguns casos, o Reantry pode não funcionar corretamente numa pasta diferente"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Em alguns casos, o Moonshine pode não funcionar corretamente numa pasta diferente"
+            "value" : "Em alguns casos, o Reantry pode não funcionar corretamente numa pasta diferente"
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "În unele cazuri, Moonshine nu va putea funcționa corect dintr-un folder diferit"
+            "value" : "În unele cazuri, Reantry nu va putea funcționa corect dintr-un folder diferit"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "В некоторых случаях Moonshine не сможет правильно функционировать из другой папки"
+            "value" : "В некоторых случаях Reantry не сможет правильно функционировать из другой папки"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bazı durumlarda, Moonshine başka bir klasörden düzgün çalışamayabilir"
+            "value" : "Bazı durumlarda, Reantry başka bir klasörden düzgün çalışamayabilir"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "У деяких випадках, Moonshine може не працювати належним чином з іншої папки"
+            "value" : "У деяких випадках, Reantry може не працювати належним чином з іншої папки"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trong một số trường hợp, Moonshine sẽ không hoạt động đúng nếu không nằm trong Applications"
+            "value" : "Trong một số trường hợp, Reantry sẽ không hoạt động đúng nếu không nằm trong Applications"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在某些情况下，Moonshine 可能无法在其他的文件夹中正常工作"
+            "value" : "在某些情况下，Reantry 可能无法在其他的文件夹中正常工作"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在某些情況下，Moonshine 可能無法在不同的資料夾中正常運作"
+            "value" : "在某些情況下，Reantry 可能無法在不同的資料夾中正常運作"
           }
         }
       }
@@ -18275,133 +18275,133 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "هل ترغب في نقل Moonshine إلى مجلد التطبيقات الخاص بك؟"
+            "value" : "هل ترغب في نقل Reantry إلى مجلد التطبيقات الخاص بك؟"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chtěli byste přesunout Moonshine do složky s aplikacemi?"
+            "value" : "Chtěli byste přesunout Reantry do složky s aplikacemi?"
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vil du flytte Moonshine til Applications mappen?"
+            "value" : "Vil du flytte Reantry til Applications mappen?"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Möchtest du Moonshine in deinen Programm-Ordner legen?"
+            "value" : "Möchtest du Reantry in deinen Programm-Ordner legen?"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Would you like to move Moonshine to your Applications folder?"
+            "value" : "Would you like to move Reantry to your Applications folder?"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "¿Te gustaría mover Moonshine a la carpeta de Aplicaciones?"
+            "value" : "¿Te gustaría mover Reantry a la carpeta de Aplicaciones?"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Haluatko siirtää Moonshine Applikaatio-kansioon?"
+            "value" : "Haluatko siirtää Reantry Applikaatio-kansioon?"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Souhaitez-vous déplacer Moonshine dans votre dossier Applications ?"
+            "value" : "Souhaitez-vous déplacer Reantry dans votre dossier Applications ?"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vuoi spostare Moonshine nella tua cartella Applicazioni?"
+            "value" : "Vuoi spostare Reantry nella tua cartella Applicazioni?"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine を「アプリケーション」フォルダに移動しますか？"
+            "value" : "Reantry を「アプリケーション」フォルダに移動しますか？"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine를 애플리케이션 폴더로 옮기시겠습니까?"
+            "value" : "Reantry를 애플리케이션 폴더로 옮기시겠습니까?"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wilt u Moonshine verplaatsen naar uw map Toepassingen?"
+            "value" : "Wilt u Reantry verplaatsen naar uw map Toepassingen?"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Czy chcesz przenieść Moonshine do folderu Aplikacje?"
+            "value" : "Czy chcesz przenieść Reantry do folderu Aplikacje?"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Você gostaria de mover o Moonshine para a pasta dos Aplicativos?"
+            "value" : "Você gostaria de mover o Reantry para a pasta dos Aplicativos?"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gostaria de mover o Moonshine para a pasta das Aplicações ?"
+            "value" : "Gostaria de mover o Reantry para a pasta das Aplicações ?"
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Doriți să mutați Moonshine în folder-ul dvs. Aplicații?"
+            "value" : "Doriți să mutați Reantry în folder-ul dvs. Aplicații?"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Вы хотите переместить Moonshine в папку «Приложения»?"
+            "value" : "Вы хотите переместить Reantry в папку «Приложения»?"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moonshine'yi Uygulamalar klasörünüze taşımak ister misiniz?"
+            "value" : "Reantry'yi Uygulamalar klasörünüze taşımak ister misiniz?"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Хотіли б ви перемістити Moonshine у вашу папку Застосунки?"
+            "value" : "Хотіли б ви перемістити Reantry у вашу папку Застосунки?"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bạn có muốn chuyển Moonshine tới folder Applications?"
+            "value" : "Bạn có muốn chuyển Reantry tới folder Applications?"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你想要将 Moonshine 移动到你的应用程序文件夹吗？"
+            "value" : "你想要将 Reantry 移动到你的应用程序文件夹吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你希望將 Moonshine 移動到你的應用程式資料夾嗎？"
+            "value" : "你希望將 Reantry 移動到你的應用程式資料夾嗎？"
           }
         }
       }
@@ -18820,7 +18820,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "أنت تقوم بتشغيل MoonshineWine %@، ولكن %@ متوفر. هل ترغب في التحديث؟"
+            "value" : "أنت تقوم بتشغيل Reantry Wine %@، ولكن %@ متوفر. هل ترغب في التحديث؟"
           }
         },
         "cs" : {
@@ -18832,121 +18832,121 @@
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du kører MoonshineWine %@, men %@ er tilgængelig. Ønsker du at opdatere?"
+            "value" : "Du kører Reantry Wine %@, men %@ er tilgængelig. Ønsker du at opdatere?"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sie verwenden MoonshineWine %@, die aktuelle Version ist %@. Möchten Sie MoonshineWine aktualisieren?"
+            "value" : "Sie verwenden Reantry Wine %@, die aktuelle Version ist %@. Möchten Sie Reantry Wine aktualisieren?"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You are running MoonshineWine %@, but %@ is available. Would you like to update?"
+            "value" : "You are running Reantry Wine %@, but %@ is available. Would you like to update?"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Estás ejecutando MoonshineWine %@, pero %@ está disponible. ¿Quieres actualizar?"
+            "value" : "Estás ejecutando Reantry Wine %@, pero %@ está disponible. ¿Quieres actualizar?"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Käytössäsi on MoonshineWine %@, mutta %@ on saatavilla. Haluatko päivittää sen?"
+            "value" : "Käytössäsi on Reantry Wine %@, mutta %@ on saatavilla. Haluatko päivittää sen?"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vous utilisez MoonshineWine %@, mais %@ est disponible. Voulez-vous le mettre à jour ?"
+            "value" : "Vous utilisez Reantry Wine %@, mais %@ est disponible. Voulez-vous le mettre à jour ?"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stai utilizzando MoonshineWine %@, ma %@ è disponibile. Vuoi aggiornare?"
+            "value" : "Stai utilizzando Reantry Wine %@, ma %@ è disponibile. Vuoi aggiornare?"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "現在 MoonshineWine %@ を使用していますが、 %@ を利用可能です。アップデートしますか？"
+            "value" : "現在 Reantry Wine %@ を使用していますが、 %@ を利用可能です。アップデートしますか？"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MoonshineWine %@ 버전을 사용 중이지만 %@ 버전을 사용할 수 있습니다. 업데이트하시겠습니까?"
+            "value" : "Reantry Wine %@ 버전을 사용 중이지만 %@ 버전을 사용할 수 있습니다. 업데이트하시겠습니까?"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "U gebruikt MoonshineWine %@, maar %@ is beschikbaar. Wilt u updaten?"
+            "value" : "U gebruikt Reantry Wine %@, maar %@ is beschikbaar. Wilt u updaten?"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Używasz MoonshineWine %@, lecz nowsza wersja %@ jest dostępna. Czy chcesz zaktualizować?"
+            "value" : "Używasz Reantry Wine %@, lecz nowsza wersja %@ jest dostępna. Czy chcesz zaktualizować?"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MoonshineWine %@ está sendo usada, mas %@ está disponível. Atualizar?"
+            "value" : "Reantry Wine %@ está sendo usada, mas %@ está disponível. Atualizar?"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Está a usar o MoonshineWine %@, mas o %@ está disponível. Gostaria de atualizar?"
+            "value" : "Está a usar o Reantry Wine %@, mas o %@ está disponível. Gostaria de atualizar?"
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dvs. rulați MoonshineWine %@, dar %@ este disponibil. Doriți să actualizați?"
+            "value" : "Dvs. rulați Reantry Wine %@, dar %@ este disponibil. Doriți să actualizați?"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Вы используете MoonshineWine %@, но %@ доступен. Желаете обновить?"
+            "value" : "Вы используете Reantry Wine %@, но %@ доступен. Желаете обновить?"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MoonshineWine %@ versiyonu kullanıyorsunuz ama %@ versiyonu mevcut. Güncellemek ister misiniz?"
+            "value" : "Reantry Wine %@ versiyonu kullanıyorsunuz ama %@ versiyonu mevcut. Güncellemek ister misiniz?"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ви використовуєте MoonshineWine %@, але доступна версія %@. Оновити?"
+            "value" : "Ви використовуєте Reantry Wine %@, але доступна версія %@. Оновити?"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bạn đang sử dụng MoonshineWine phiên bản %@, nhưng phiên bản%@ đã được phát hành. Bạn có muốn cập nhật không?"
+            "value" : "Bạn đang sử dụng Reantry Wine phiên bản %@, nhưng phiên bản%@ đã được phát hành. Bạn có muốn cập nhật không?"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "您正在运行 MoonshineWine %@，但 %@ 可用。您想要更新吗？"
+            "value" : "您正在运行 Reantry Wine %@，但 %@ 可用。您想要更新吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "您正在使用MoonshineWine %@, %@已可更新 請問是否要更新?"
+            "value" : "您正在使用Reantry Wine %@, %@已可更新 請問是否要更新?"
           }
         }
       }
@@ -18956,133 +18956,133 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "إصدار جديد من MoonshineWine متوفر"
+            "value" : "إصدار جديد من Reantry Wine متوفر"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "K dispozici je nová verze MoonshineWine"
+            "value" : "K dispozici je nová verze Reantry Wine"
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ny version af MoonshineWine tilgængelig"
+            "value" : "Ny version af Reantry Wine tilgængelig"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eine neue MoonshineWine Version ist verfügbar"
+            "value" : "Eine neue Reantry Wine Version ist verfügbar"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "New Version of MoonshineWine Available"
+            "value" : "New Version of Reantry Wine Available"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nueva versión de MoonshineWine disponible"
+            "value" : "Nueva versión de Reantry Wine disponible"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Uusi MoonshineWine versio on saatavilla"
+            "value" : "Uusi Reantry Wine versio on saatavilla"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nouvelle version de MoonshineWine disponible"
+            "value" : "Nouvelle version de Reantry Wine disponible"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nuova versione di MoonshineWine disponibile"
+            "value" : "Nuova versione di Reantry Wine disponibile"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MoonshineWine の新しいバージョンがあります"
+            "value" : "Reantry Wine の新しいバージョンがあります"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "새로운 버전의 MoonshineWine를 사용할 수 있습니다"
+            "value" : "새로운 버전의 Reantry Wine를 사용할 수 있습니다"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nieuwe MoonshineWine versie is beschikbaar"
+            "value" : "Nieuwe Reantry Wine versie is beschikbaar"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nowa wersja MoonshineWine jest dostępna"
+            "value" : "Nowa wersja Reantry Wine jest dostępna"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nova versão do MoonshineWine disponível"
+            "value" : "Nova versão do Reantry Wine disponível"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nova versão do MoonshineWine disponível"
+            "value" : "Nova versão do Reantry Wine disponível"
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Nouă Versiune MoonshineWine este Disponibilă"
+            "value" : "O Nouă Versiune Reantry Wine este Disponibilă"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Доступна новая версия MoonshineWine"
+            "value" : "Доступна новая версия Reantry Wine"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MoonshineWine'nin yeni versiyonu mevcut"
+            "value" : "Reantry Wine'ın yeni versiyonu mevcut"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Доступна нова версія MoonshineWine"
+            "value" : "Доступна нова версія Reantry Wine"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Phiên bản mới của MoonshineWine đã được phát hành"
+            "value" : "Phiên bản mới của Reantry Wine đã được phát hành"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有更新的 MoonshineWine 版本可用"
+            "value" : "有更新的 Reantry Wine 版本可用"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有新的MoonshineWine版本可供安裝"
+            "value" : "有新的Reantry Wine版本可供安裝"
           }
         }
       }
