@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleDisplayName</key>
+	<string>Reantry</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -53,6 +55,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>CFBundleName</key>
+	<string>Reantry</string>
 	<key>SUFeedURL</key>
 	<string>https://raw.githubusercontent.com/criptore/reantry/main/appcast.xml</string>
 	<key>SUPublicEDKey</key>

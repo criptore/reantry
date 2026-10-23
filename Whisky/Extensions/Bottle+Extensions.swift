@@ -27,7 +27,7 @@ extension Bottle {
     }
 
     func openTerminal() {
-        let whiskyCmdURL = Bundle.main.url(forResource: "WhiskyCmd", withExtension: nil)
+        let whiskyCmdURL = Bundle.main.url(forResource: "ReantryCmd", withExtension: nil)
         if let whiskyCmdURL = whiskyCmdURL {
             let whiskyCmd = whiskyCmdURL.path(percentEncoded: false)
             let cmd = "eval \\\"$(\\\"\(whiskyCmd)\\\" shellenv \\\"\(settings.name)\\\")\\\""

@@ -26,7 +26,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Test if automatic window tabbing is enabled
         // as it is disabled when ContentView appears
         if NSWindow.allowsAutomaticWindowTabbing, let url = urls.first {
-            // Reopen the file after Whisky has been opened
+            // Reopen the file after Reantry has been opened
             // so that the `onOpenURL` handler is actually called
             NSWorkspace.shared.open(url)
         }
@@ -56,7 +56,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         Bundle.main.resourceURL?.deletingLastPathComponent().deletingLastPathComponent()
     }
 
-    private static let expectedUrl = URL(fileURLWithPath: "/Applications/Whisky.app")
+    private static let expectedUrl = URL(fileURLWithPath: "/Applications/Reantry.app")
 
     private static var insideAppsFolder: Bool {
         if let url = appUrl {
