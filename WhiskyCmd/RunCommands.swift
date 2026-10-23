@@ -26,7 +26,7 @@ extension Whisky {
             abstract: "Run wine with the given arguments in a bottle and stream its output.",
             discussion: """
             Everything after `--` is passed to wine, and wine's exit status becomes the exit status of this command.
-            Example: ReantryCmd exec mybottle -- cmd /c ver
+            Example: reantry exec mybottle -- cmd /c ver
             """
         )
 
@@ -66,7 +66,7 @@ extension Whisky {
             printing the log file that receives its output. With --wait, it runs attached to this command, and \
             the exit status of the program becomes the exit status of this command. Options go before the \
             bottle, everything after the program is passed to it, dashes included. A leading -- is optional.
-            Example: ReantryCmd run --wait mybottle game.exe -windowed
+            Example: reantry run --wait mybottle game.exe -windowed
             """
         )
 

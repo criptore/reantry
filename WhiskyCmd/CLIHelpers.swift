@@ -131,7 +131,7 @@ enum CLI {
     /// Fails with a hint when Wine is not installed.
     static func requireWine() throws {
         guard WhiskyWineInstaller.isWhiskyWineInstalled() else {
-            throw fail("Wine is not installed. Run `ReantryCmd wine install` first.")
+            throw fail("Wine is not installed. Run `reantry wine install` first.")
         }
     }
 
