@@ -36,7 +36,8 @@ extension Wine {
     }
 
     /// A plain text report about the app, the Mac and optionally a bottle, to paste in a bug report.
-    /// It holds no environment variable, and the home folder is replaced with `~`.
+    /// It holds no environment variable and no program argument, the home folder is replaced with `~`
+    /// and the user name in Wine profile paths with `<user>`.
     public static func diagnosticReport(bottle: Bottle? = nil) -> String {
         let info = Bundle.main.infoDictionary
         let version = info?["CFBundleShortVersionString"] as? String ?? "unknown"
@@ -100,7 +101,7 @@ extension Wine {
         }
     }
 
-    /// The last lines of a log, without the lines of the environment dump
+    /// The last lines of a log, without the program arguments and the lines of the environment dump
     private static func logTail(of url: URL, lineCount: Int) -> String {
         guard let handle = try? FileHandle(forReadingFrom: url) else { return "" }
         defer { try? handle.close() }
@@ -111,14 +112,15 @@ extension Wine {
         // The start of the data can cut a character in two
         let text = (0..<4).lazy.compactMap { String(data: data.dropFirst($0), encoding: .utf8) }.first ?? ""
         let lines = text.components(separatedBy: .newlines).filter { line in
-            !(line.hasPrefix("    ") && line.contains(" = ") && line.hasSuffix(";"))
+            !line.hasPrefix("Arguments: ") && !(line.hasPrefix("    ") && line.contains(" = ") && line.hasSuffix(";"))
         }
         return lines.suffix(lineCount).joined(separator: "\n")
     }
 
     private static func hidingHomeFolder(in text: String) -> String {
-        var result = text
-        let homes = Set([NSHomeDirectory(), NSHomeDirectoryForUser(NSUserName()) ?? ""])
+        let userName = NSUserName()
+        var result = hidingWineProfileName(userName, in: text)
+        let homes = Set([NSHomeDirectory(), NSHomeDirectoryForUser(userName) ?? ""])
             .filter { $0.count > 1 }
             .sorted { $0.count > $1.count }
         for home in homes {
@@ -127,5 +129,15 @@ extension Wine {
             result = result.replacingOccurrences(of: home.replacingOccurrences(of: "/", with: "\\"), with: "~")
         }
         return result
+    }
+
+    /// Wine profiles are named after the short user name, such as `C:\users\name` or `drive_c/users/name`
+    private static func hidingWineProfileName(_ userName: String, in text: String) -> String {
+        let name = NSRegularExpression.escapedPattern(for: userName)
+        guard !name.isEmpty, let regex = try? NSRegularExpression(
+            pattern: #"((?:c:|drive_c)[\\/]users[\\/])"# + name + #"(?![\w.-])"#, options: .caseInsensitive
+        ) else { return text }
+        let range = NSRange(text.startIndex..., in: text)
+        return regex.stringByReplacingMatches(in: text, range: range, withTemplate: "$1<user>")
     }
 }
