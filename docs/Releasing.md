@@ -205,6 +205,16 @@ without them is configured again on the next run (in place, so `make` only
 rebuilds what changed). The end of the log shows the GnuTLS and FreeType
 libraries that were found.
 
+**Older macOS versions.** The build targets macOS 14 (`MACOSX_DEPLOYMENT_TARGET`),
+but configure checks for functions against the installed SDK. A function that
+only exists in a newer macOS becomes a weak import, which is NULL on older
+systems. `pipe2()` was such a case: with the Xcode 27 SDK, ntdll called it
+unchecked and Wine crashed with a segmentation fault at startup on macOS 15,
+before loading any DLL (`wine --version` still worked). The script disables it
+(`ac_cv_func_pipe2=no`) and, after the install, fails if a Unix module has a
+weak import outside `ALLOWED_WEAK_IMPORTS`. When it does, disable that function
+the same way, or allow it if Wine checks it at run time.
+
 **Prebuilt libraries (`DEPS_DIR`).** Without an x86_64 Homebrew, set `DEPS_DIR`
 to a folder holding the x86_64 dylibs (FreeType, GnuTLS, GMP, SDL2 and their
 dependencies) at its top level or in `lib/`. Configure still needs the GnuTLS
@@ -363,6 +373,12 @@ Test it on a Mac first: point a local build at it by copying the extracted
 run a DirectX 11 game with each graphics backend.
 
 Known points to check:
+
+- **Oldest supported macOS.** Test the archive on the oldest macOS Reantry
+  supports (14), not only on the build Mac. D3DMetal from Game Porting Toolkit
+  4.0 beta 3 needs macOS 26 or later (its `libdxccontainer.dylib` has a minimum
+  version of 26.4); on older systems use the D3DMetal of a toolkit release that
+  supports them, or let users fall back to the WineD3D or DXVK backend.
 
 - **D3DMetal licence.** Apple's Game Porting Toolkit licence forbids
   commercial distribution, so an archive that includes D3DMetal may only be
