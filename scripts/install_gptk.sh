@@ -23,7 +23,8 @@ while [ $# -gt 0 ]; do
         --libraries) LIBRARIES="$2"; shift 2 ;;
         --gptk) GPTK_PATH="$2"; shift 2 ;;
         -h|--help)
-            sed -n '2,24p' "$0"
+            # Print the comment block at the top of this file, without the "# " prefix.
+            sed -n '3,/^[^#]/s/^# \{0,1\}//p' "$0"
             exit 0
             ;;
         *) echo "Unknown option: $1"; exit 1 ;;
@@ -78,18 +79,27 @@ if [ ! -d "$REDIST/external/D3DMetal.framework" ]; then
     exit 1
 fi
 
-# Save Wine's own Direct3D DLLs for the WineD3D backend, if not already saved.
+# Save Wine's own Direct3D DLLs for the WineD3D backend, if not already saved. Same rule as
+# scripts/build_libraries.sh: every DLL of the toolkit's wine/x86_64-windows folder that Wine
+# also has, since D3DMetal replaces exactly those.
 if [ ! -d "$LIBRARIES/WineD3D" ]; then
-    mkdir -p "$LIBRARIES/WineD3D/x64"
-    for dll in "$LIBRARIES/Wine/lib/wine/x86_64-windows"/*.dll; do
-        [ -f "$dll" ] || continue
-        name=$(basename "$dll")
-        case "$name" in
-            d3d10core.dll|d3d11.dll|d3d12.dll|dxgi.dll|nvapi64.dll|atidxx64.dll)
-                cp "$dll" "$LIBRARIES/WineD3D/x64/$name"
-                ;;
-        esac
-    done
+    if [ -d "$LIBRARIES/Wine/lib/external/D3DMetal.framework" ]; then
+        # The DLLs in Wine are already D3DMetal's: saving them would give WineD3D D3DMetal's DLLs.
+        echo "Warning: D3DMetal is already installed in $LIBRARIES/Wine but there is no WineD3D folder."
+        echo "         Wine's own Direct3D DLLs are gone, so none are saved and the WineD3D backend"
+        echo "         will use D3DMetal's DLLs. Reinstall the Wine libraries from Reantry, then run"
+        echo "         this script again to get a WineD3D folder."
+    else
+        echo "==> Saving Wine's Direct3D DLLs for the WineD3D backend"
+        mkdir -p "$LIBRARIES/WineD3D/x64"
+        for dll in "$REDIST"/wine/x86_64-windows/*.dll; do
+            [ -f "$dll" ] || continue
+            name=$(basename "$dll")
+            if [ -f "$LIBRARIES/Wine/lib/wine/x86_64-windows/$name" ]; then
+                cp "$LIBRARIES/Wine/lib/wine/x86_64-windows/$name" "$LIBRARIES/WineD3D/x64/$name"
+            fi
+        done
+    fi
 fi
 
 echo "==> Installing D3DMetal from $REDIST into $LIBRARIES/Wine/lib"

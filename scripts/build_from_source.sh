@@ -92,3 +92,11 @@ open "$INSTALL_PATH"
 echo ""
 echo "==> Done! Reantry.app is installed and running."
 echo "    The setup wizard will download and install Wine."
+
+# Older versions of this script installed the app as Moonshine.app. It is left in place.
+OLD_INSTALL_PATH="/Applications/Moonshine.app"
+if [ -d "$OLD_INSTALL_PATH" ]; then
+    echo ""
+    echo "    Note: $OLD_INSTALL_PATH from an older install is still there."
+    echo "    It is no longer used and can be deleted."
+fi

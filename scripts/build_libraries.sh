@@ -20,7 +20,11 @@ set -euo pipefail
 #                             Optionally merged with Apple's D3DMetal through --gptk.
 #   --wine-dir <path> crossover engine only. Wine folder produced by build_crossover_wine.sh
 #                    (bin/wine, bin/wineserver, lib/, share/). It is copied, not moved.
-#   --gptk <path>    staging and crossover engines only. Game Porting Toolkit to bundle D3DMetal from:
+#                    Defaults to the newest build/crossover-wine-* folder.
+#   --gptk <path>    staging and crossover engines only. Game Porting Toolkit to merge D3DMetal from,
+#                    D3DMetal is never merged without this option. Archives with D3DMetal
+#                    may only be shared free of charge (Game Porting Toolkit licence).
+#                    Game Porting Toolkit location:
 #                    the mounted DMG
 #                    (e.g. "/Volumes/Evaluation environment for Windows games 3.0")
 #                    or its "redist" folder. Download it from
@@ -79,19 +83,8 @@ done
 # When no Wine folder is given for the crossover engine, use the most recent one built by
 # scripts/build_crossover_wine.sh (build/crossover-wine-*).
 if [ "$ENGINE" = "crossover" ] && [ -z "$WINE_DIR" ]; then
-    WINE_DIR=$(find "$PROJECT_DIR/build" -maxdepth 1 -type d -name 'crossover-wine-*' 2>/dev/null | sort | tail -1 || true)
+    WINE_DIR=$(find "$PROJECT_DIR/build" -maxdepth 1 -type d -name 'crossover-wine-*' 2>/dev/null | sort -V | tail -1 || true)
 fi
-# When no Game Porting Toolkit is given for the crossover engine, use a mounted one if present,
-# so D3DMetal is merged by default.
-if [ "$ENGINE" = "crossover" ] && [ -z "$GPTK_PATH" ]; then
-    for vol in /Volumes/*; do
-        if [ -d "$vol/redist/lib/external/D3DMetal.framework" ] || [ -d "$vol/lib/external/D3DMetal.framework" ]; then
-            GPTK_PATH="$vol"
-            break
-        fi
-    done
-fi
-
 case "$ENGINE" in
     gptk|staging|sikarugir|crossover) ;;
     *) echo "Error: --engine must be gptk, staging, sikarugir or crossover, got '$ENGINE'"; exit 1 ;;
@@ -124,6 +117,12 @@ if [ "$ENGINE" = "sikarugir" ] && [ -n "$GPTK_PATH" ]; then
     echo "Error: --gptk cannot be used with --engine sikarugir, it ships its own DXMT based graphics."
     echo "       Use --engine staging or crossover to merge Apple's Game Porting Toolkit into Wine."
     exit 1
+fi
+
+# D3DMetal is only merged when --gptk is given explicitly. The Game Porting Toolkit licence
+# forbids commercial distribution, so a published archive that contains it must stay free.
+if [ "$PUBLISH" -eq 1 ] && [ -n "$GPTK_PATH" ]; then
+    echo "==> Note: this archive includes D3DMetal. It may only be distributed free of charge."
 fi
 
 if [ -z "$LIBRARIES_VERSION" ]; then
