@@ -8,7 +8,7 @@ repository set in `AppDistribution.repository`
 | What | Where |
 |------|-------|
 | Wine libraries | Release tagged `libraries`, assets `Libraries.tar.gz` and `WhiskyWineVersion.plist` |
-| App builds | One release per version (`v2.8.0`, ...), asset `Moonshine.zip` (and the DMG) |
+| App builds | One release per version (`v0.3.4`, ...), assets `Reantry.app.zip`, `ReantryCmd` and `SHA256SUMS` |
 | Update feed | `https://raw.githubusercontent.com/criptore/reantry/main/appcast.xml` (`SUFeedURL` in `Whisky/Info.plist`) |
 
 ## Wine libraries
@@ -291,11 +291,11 @@ Then package it. For a local test with D3DMetal, from the Game Porting Toolkit D
     --gptk "/Volumes/Evaluation environment for Windows games 3.0"
 ```
 
-**Testing Steam.** Install the archive with `WhiskyCmd`, then install and
+**Testing Steam.** Install the archive with `ReantryCmd`, then install and
 start Steam in a new bottle:
 
 ```bash
-CLI=./WhiskyCmd   # path to the built WhiskyCmd binary
+CLI=./ReantryCmd   # path to the built ReantryCmd binary
 $CLI wine install --file build/Libraries.tar.gz
 $CLI create steam-test --windows win10
 curl -fLo SteamSetup.exe https://cdn.cloudflare.steamstatic.com/client/installer/SteamSetup.exe
@@ -421,10 +421,10 @@ If the private key is lost, users have to download the next version manually.
    Sparkle compares `CURRENT_PROJECT_VERSION` (`CFBundleVersion`), so it must
    always increase.
 2. Build the app and zip it:
-   `ditto -c -k --sequesterRsrc --keepParent Moonshine.app Moonshine.zip`
-3. Sign the archive: `./bin/sign_update Moonshine.zip`. It prints
+   `ditto -c -k --sequesterRsrc --keepParent Reantry.app Reantry.app.zip`
+3. Sign the archive: `./bin/sign_update Reantry.app.zip`. It prints
    `sparkle:edSignature="..." length="..."`.
-4. Create the GitHub release `vX.Y.Z` and upload `Moonshine.zip`.
+4. Create the GitHub release `vX.Y.Z` and upload `Reantry.app.zip`.
 5. Add an item to `appcast.xml` and push it to `main`:
 
 ```xml
@@ -435,7 +435,7 @@ If the private key is lost, users have to download the next version manually.
     <sparkle:shortVersionString>X.Y.Z</sparkle:shortVersionString>
     <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
     <enclosure
-        url="https://github.com/criptore/reantry/releases/download/vX.Y.Z/Moonshine.zip"
+        url="https://github.com/criptore/reantry/releases/download/vX.Y.Z/Reantry.app.zip"
         type="application/octet-stream"
         sparkle:edSignature="..."
         length="..." />
@@ -448,14 +448,14 @@ folder holding the zip:
 
 ## Testing without the GUI
 
-`WhiskyCmd` (see the Command line section of the README) can create bottles, change their settings and run
+`ReantryCmd` (see the Command line section of the README) can create bottles, change their settings and run
 Wine, so a build can be checked from a terminal. This script runs `winecfg` once per graphics backend and checks
 in the newest log that the backend was applied:
 
 ```bash
 #!/bin/bash
 set -euo pipefail
-CLI=./WhiskyCmd   # path to the built WhiskyCmd binary
+CLI=./ReantryCmd   # path to the built ReantryCmd binary
 
 $CLI wine status
 $CLI wine install            # skip when Wine is already installed
