@@ -104,7 +104,8 @@ class ProgramShortcut {
 
     /// A script that runs the program with `reantry run`, the `ReantryCmd` binary of the app. The tool is looked
     /// up by the bundle identifier of Reantry when the app moved since the shortcut was made, skipping the copies
-    /// in the Trash or on other volumes. When the tool fails, an alert explains it, then Reantry opens.
+    /// in the Trash or on other volumes. When it cannot find the bottle or the program, or cannot run, an alert
+    /// explains it, then Reantry opens.
     private static func launchScript(for program: Program) -> String {
         let cmdURL = Bundle.main.url(forResource: "ReantryCmd", withExtension: nil)
             ?? Bundle.main.bundleURL.appending(path: cmdPathInBundle)
@@ -133,10 +134,14 @@ class ProgramShortcut {
             CMD="$APP/\(cmdPathInBundle)"
         fi
         if [ -x "$CMD" ]; then
-            if "$CMD" run --wait \(bottlePath) \(programPath); then
-                exit 0
-            fi
-            /usr/bin/osascript -e \(quoted(alert))
+            "$CMD" run --wait \(bottlePath) \(programPath)
+            STATUS=$?
+            # 66: the bottle or the program cannot be found, 126 or 127: the tool cannot run.
+            # Any other status is the program's own, the shortcut ends quietly.
+            case $STATUS in
+                66|126|127) /usr/bin/osascript -e \(quoted(alert)) ;;
+                *) exit $STATUS ;;
+            esac
         fi
         exec /usr/bin/open -b \(quoted(bundleIdentifier))
 
