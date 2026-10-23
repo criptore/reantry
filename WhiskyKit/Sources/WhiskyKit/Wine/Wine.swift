@@ -333,14 +333,11 @@ extension Wine {
         )
     }
 
+    /// Only reads the value: Wine leaves the retina mode off when it is missing.
     public static func retinaMode(bottle: Bottle) async throws -> Bool {
-        let values: Set<String> = ["y", "n"]
-        guard let output = try await Wine.queryRegistryKey(
+        let output = try await Wine.queryRegistryKey(
             bottle: bottle, key: RegistryKey.macDriver.rawValue, name: "RetinaMode", type: .string
-        ), values.contains(output) else {
-            try await changeRetinaMode(bottle: bottle, retinaMode: false)
-            return false
-        }
+        )
         return output == "y"
     }
 

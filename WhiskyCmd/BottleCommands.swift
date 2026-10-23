@@ -197,7 +197,7 @@ extension Whisky {
         }
 
         /// The retina mode just set, or else the one saved in the bottle's `user.reg`. Reading the file directly
-        /// needs no Wine process, unlike `Wine.retinaMode`, which also writes the value when it is missing.
+        /// needs no Wine process, unlike `Wine.retinaMode`.
         /// Wine leaves the retina mode off when the value is missing.
         private func retinaMode(of bottle: Bottle) -> Bool {
             if let retina { return retina == .enabled }
