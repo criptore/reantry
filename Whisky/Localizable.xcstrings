@@ -638,7 +638,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Create Shortcut"
+            "value" : "Create Shortcut in Applications…"
           }
         },
         "es" : {
@@ -656,7 +656,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Créer raccourci"
+            "value" : "Créer un raccourci dans Applications…"
           }
         },
         "it" : {
@@ -2661,6 +2661,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher le journal"
+          }
+        }
+      }
+    },
+    "button.stopAll" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop All"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout arrêter"
           }
         }
       }
@@ -6516,138 +6532,34 @@
         }
       }
     },
-    "config.retinaMode" : {
+    "config.retinaMode.info" : {
       "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "وضع Retina"
-          }
-        },
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Režim Retina"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Retina Tilstand"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Retina-Modus"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Retina Mode"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Modo Retina"
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Retina-tila"
+            "value" : "Uses the full screen resolution. Games may need their resolution raised in their own settings."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mode Retina"
+            "value" : "Utilise la résolution complète de l’écran. Les jeux peuvent demander d’augmenter leur résolution dans leurs propres réglages."
           }
-        },
-        "it" : {
+        }
+      }
+    },
+    "config.retinaMode.title" : {
+      "localizations" : {
+        "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Modalità Retina"
+            "value" : "High Resolution (Retina)"
           }
         },
-        "ja" : {
+        "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Retina モード"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Retina 모드"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Retina Modus"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tryb Retina"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Modo Retina"
-          }
-        },
-        "pt-PT" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Modo Retina"
-          }
-        },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mod Retina"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Режим Retina"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Retina Modu"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Режим Retina"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chế độ Retina"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Retina 模式"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Retina 模式"
+            "value" : "Haute résolution (Retina)"
           }
         }
       }
@@ -17974,6 +17886,54 @@
         }
       }
     },
+    "shortcut.error.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The bottle or the program could not be found. You can recreate the shortcut from Reantry."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La bouteille ou le programme est introuvable. Vous pouvez recréer le raccourci depuis Reantry."
+          }
+        }
+      }
+    },
+    "shortcut.error.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The program could not be opened"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d'ouvrir le programme"
+          }
+        }
+      }
+    },
+    "shortcut.panel.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The shortcut opens this program with Reantry. Save it in Applications or on the Desktop."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le raccourci ouvre ce programme avec Reantry. Enregistrez-le dans Applications ou sur le Bureau."
+          }
+        }
+      }
+    },
     "showAlertOnFirstLaunch.button.dontMove" : {
       "localizations" : {
         "ar" : {
@@ -18514,6 +18474,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你希望將 Reantry 移動到你的應用程式資料夾嗎？"
+          }
+        }
+      }
+    },
+    "stopAll.alert.info" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every Windows program running in this bottle is closed right away. Unsaved progress, such as game progress, is lost."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tous les programmes Windows ouverts dans cette bouteille sont fermés immédiatement. La progression non enregistrée, comme celle d’un jeu, est perdue."
+          }
+        }
+      }
+    },
+    "stopAll.alert.msg" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop all programs in “%@”?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrêter tous les programmes de « %@ » ?"
+          }
+        }
+      }
+    },
+    "stopAll.help" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close every program running in this bottle"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fermer tous les programmes ouverts dans cette bouteille"
           }
         }
       }

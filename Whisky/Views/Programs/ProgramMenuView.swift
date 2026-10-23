@@ -43,6 +43,11 @@ struct ProgramMenuView: View {
             }
             .labelStyle(.titleAndIcon)
             .symbolVariant(program.pinned ? .slash : .none)
+
+            Button("button.createShortcut", systemImage: "plus.app") {
+                ProgramShortcut.chooseLocation(for: program)
+            }
+            .labelStyle(.titleAndIcon)
         }
     }
 }

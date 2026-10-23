@@ -216,11 +216,16 @@ public class Wine {
     public static func killBottle(bottle: Bottle) throws {
         Task.detached(priority: .userInitiated) {
             do {
-                try await runWineserver(["-k"], bottle: bottle)
+                try await stopBottle(bottle: bottle)
             } catch {
                 Logger.wineKit.error("Failed to kill the bottle \(bottle.settings.name): \(error)")
             }
         }
+    }
+
+    /// Stops every process of the bottle with `wineserver -k` from the bottle's runtime, and returns once it ended.
+    public static func stopBottle(bottle: Bottle) async throws {
+        _ = try await runWineserver(["-k"], bottle: bottle)
     }
 
     /// Construct an environment merging the bottle values with the given values
@@ -324,14 +329,11 @@ extension Wine {
         )
     }
 
+    /// Only reads the value: Wine leaves the retina mode off when it is missing.
     public static func retinaMode(bottle: Bottle) async throws -> Bool {
-        let values: Set<String> = ["y", "n"]
-        guard let output = try await Wine.queryRegistryKey(
+        let output = try await Wine.queryRegistryKey(
             bottle: bottle, key: RegistryKey.macDriver.rawValue, name: "RetinaMode", type: .string
-        ), values.contains(output) else {
-            try await changeRetinaMode(bottle: bottle, retinaMode: false)
-            return false
-        }
+        )
         return output == "y"
     }
 

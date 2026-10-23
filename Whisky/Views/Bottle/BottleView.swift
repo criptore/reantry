@@ -62,6 +62,13 @@ struct BottleView: View {
             }
             .bottomBar {
                 HStack {
+                    Button("button.stopAll", systemImage: "stop.fill") {
+                        WhiskyApp.confirmStopBottle(bottle) {
+                            programLoading = false
+                        }
+                    }
+                    .labelStyle(.titleAndIcon)
+                    .help("stopAll.help")
                     Spacer()
                     Button("button.cDrive") {
                         bottle.openCDrive()
