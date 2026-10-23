@@ -46,6 +46,7 @@ extension Whisky {
             let bottle = try CLI.bottle(named: bottleName)
             try CLI.prepareGraphicsBackend(for: bottle)
             try await CLI.stopForeignWineserver(for: bottle)
+            await Wine.removeSteamAutostartIfPresent(bottle: bottle)
 
             let status = try await CLI.streamWine(args: wineArgs, bottle: bottle)
 
@@ -86,6 +87,7 @@ extension Whisky {
             try CLI.requireWine()
             try CLI.prepareGraphicsBackend(for: bottle)
             try await CLI.stopForeignWineserver(for: bottle)
+            await Wine.removeSteamAutostartIfPresent(bottle: bottle)
             let savedArguments = program.settings.arguments.split { $0.isWhitespace }.map(String.init)
             // `run bottle game.exe -- -flag` also works: a single leading "--" is not passed on.
             let programArguments = args.first == "--" ? Array(args.dropFirst()) : args
