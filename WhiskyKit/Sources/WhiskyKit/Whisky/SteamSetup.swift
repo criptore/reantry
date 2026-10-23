@@ -70,11 +70,12 @@ public enum SteamSetup {
         bottle: Bottle, progress: @Sendable (SteamSetupStep) async -> Void = { _ in }
     ) async throws {
         await progress(.configuring)
-        if bottle.settings.windowsVersion != .win10 {
+        // The settings are published, so they only change on the main actor; Wine runs off it
+        if await MainActor.run(body: { bottle.settings.windowsVersion != .win10 }) {
             try await Wine.changeWinVersion(bottle: bottle, win: .win10)
-            bottle.settings.windowsVersion = .win10
+            await MainActor.run { bottle.settings.windowsVersion = .win10 }
         }
-        bottle.settings.graphicsBackend = .d3dMetal
+        await MainActor.run { bottle.settings.graphicsBackend = .d3dMetal }
         try await Wine.changeRetinaMode(bottle: bottle, retinaMode: true)
 
         await progress(.downloading)
@@ -91,8 +92,10 @@ public enum SteamSetup {
         guard FileManager.default.fileExists(atPath: steam.path(percentEncoded: false)) else {
             throw SteamSetupError.notInstalled
         }
-        if !bottle.settings.pins.contains(where: { $0.url == steam }) {
-            bottle.settings.pins.append(PinnedProgram(name: "Steam", url: steam))
+        await MainActor.run {
+            if !bottle.settings.pins.contains(where: { $0.url == steam }) {
+                bottle.settings.pins.append(PinnedProgram(name: "Steam", url: steam))
+            }
         }
     }
 
