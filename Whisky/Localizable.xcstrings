@@ -273,6 +273,70 @@
         }
       }
     },
+    "alert.wineStopped.exit" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wine exited with status %d."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wine s'est terminé avec le code %d."
+          }
+        }
+      }
+    },
+    "alert.wineStopped.hint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wine could not start. This can happen on older macOS versions; check for a Reantry or Wine update. (macOS %@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wine n'a pas pu démarrer. Cela peut arriver sur les anciennes versions de macOS ; vérifiez s'il existe une mise à jour de Reantry ou de Wine. (macOS %@)"
+          }
+        }
+      }
+    },
+    "alert.wineStopped.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wine stopped unexpectedly while starting %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wine s'est arrêté de manière inattendue au lancement de %@"
+          }
+        }
+      }
+    },
+    "alert.wineStopped.signal" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wine crashed with signal %d."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wine a planté avec le signal %d."
+          }
+        }
+      }
+    },
     "button.cDrive" : {
       "localizations" : {
         "ar" : {
@@ -2581,6 +2645,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在 Finder 中顯示"
+          }
+        }
+      }
+    },
+    "button.showLog" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Log"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher le journal"
           }
         }
       }
@@ -8744,6 +8824,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Windows 版本："
+          }
+        }
+      }
+    },
+    "diagnostics.copyReport" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Diagnostic Report"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier le rapport de diagnostic"
+          }
+        }
+      }
+    },
+    "diagnostics.reportCopied" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagnostic report copied to the clipboard"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rapport de diagnostic copié dans le presse-papiers"
           }
         }
       }

@@ -41,7 +41,7 @@ public class Wine {
     }
 
     /// Run a `wine` process with the given arguments and environment variables returning a stream of output
-    private static func runWineProcess(
+    static func runWineProcess(
         name: String? = nil, args: [String], environment: [String: String] = [:],
         fileHandle: FileHandle?, directory: URL? = nil, binFolder: URL = WhiskyWineInstaller.binFolder
     ) throws -> AsyncStream<ProcessOutput> {
@@ -95,10 +95,11 @@ public class Wine {
         )
     }
 
-    /// Execute a program directly via `wine {url}`, capturing all output including crash messages
+    /// Execute a program via `wine {url}`, logging all its output. Returns how Wine failed if it stopped at launch.
+    @discardableResult
     public static func runProgram(
         at url: URL, args: [String] = [], bottle: Bottle, environment: [String: String] = [:]
-    ) async throws {
+    ) async throws -> WineLaunchFailure? {
         switch bottle.settings.graphicsBackend {
         case .d3dMetal:
             try disableDXVK(bottle: bottle)
@@ -109,12 +110,7 @@ public class Wine {
             try enableWineD3D(bottle: bottle)
         }
 
-        for await _ in try Self.runWineProcess(
-            name: url.lastPathComponent,
-            args: [url.path(percentEncoded: false)] + args,
-            bottle: bottle, environment: environment,
-            directory: url.deletingLastPathComponent()
-        ) { }
+        return try await runLoggingLaunchFailure(at: url, args: args, bottle: bottle, environment: environment)
     }
 
     public static func generateRunCommand(
