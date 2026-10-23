@@ -8468,6 +8468,102 @@
         }
       }
     },
+    "create.steam" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set up for Steam"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurer pour Steam"
+          }
+        }
+      }
+    },
+    "create.steam.configuring" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configuring for Steam…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configuration pour Steam…"
+          }
+        }
+      }
+    },
+    "create.steam.downloading" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading Steam…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Téléchargement de Steam…"
+          }
+        }
+      }
+    },
+    "create.steam.failed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam could not be set up. The bottle can still be used."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam n’a pas pu être installé. La bouteille reste utilisable."
+          }
+        }
+      }
+    },
+    "create.steam.info" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows 10, D3DMetal and Retina mode, then downloads, installs and pins Steam."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows 10, D3DMetal et mode Retina, puis télécharge, installe et épingle Steam."
+          }
+        }
+      }
+    },
+    "create.steam.installing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installing Steam…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installation de Steam…"
+          }
+        }
+      }
+    },
     "create.title" : {
       "localizations" : {
         "ar" : {

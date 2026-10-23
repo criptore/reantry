@@ -100,6 +100,7 @@ public class Wine {
     public static func runProgram(
         at url: URL, args: [String] = [], bottle: Bottle, environment: [String: String] = [:]
     ) async throws -> WineLaunchFailure? {
+        await removeSteamAutostartIfPresent(bottle: bottle)
         switch bottle.settings.graphicsBackend {
         case .d3dMetal:
             try disableDXVK(bottle: bottle)

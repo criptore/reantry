@@ -137,7 +137,14 @@ struct ContentView: View {
                         Group {
                             if bottle.inFlight {
                                 HStack {
-                                    Text(bottle.settings.name)
+                                    VStack(alignment: .leading) {
+                                        Text(bottle.settings.name)
+                                        if let step = bottleVM.steamSetupSteps[bottle.url] {
+                                            Text(steamStepLabel(step))
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
                                     Spacer()
                                     ProgressView().controlSize(.small)
                                 }
@@ -191,6 +198,14 @@ struct ContentView: View {
                     .tint(.accentColor)
                 }
             }
+        }
+    }
+
+    func steamStepLabel(_ step: SteamSetupStep) -> LocalizedStringKey {
+        switch step {
+        case .configuring: return "create.steam.configuring"
+        case .downloading: return "create.steam.downloading"
+        case .installing: return "create.steam.installing"
         }
     }
 
