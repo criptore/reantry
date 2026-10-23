@@ -83,7 +83,7 @@ done
 # When no Wine folder is given for the crossover engine, use the most recent one built by
 # scripts/build_crossover_wine.sh (build/crossover-wine-*).
 if [ "$ENGINE" = "crossover" ] && [ -z "$WINE_DIR" ]; then
-    WINE_DIR=$(find "$PROJECT_DIR/build" -maxdepth 1 -type d -name 'crossover-wine-*' 2>/dev/null | sort | tail -1 || true)
+    WINE_DIR=$(find "$PROJECT_DIR/build" -maxdepth 1 -type d -name 'crossover-wine-*' 2>/dev/null | sort -V | tail -1 || true)
 fi
 case "$ENGINE" in
     gptk|staging|sikarugir|crossover) ;;
