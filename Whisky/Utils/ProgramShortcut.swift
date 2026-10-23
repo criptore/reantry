@@ -102,28 +102,53 @@ class ProgramShortcut {
         Bundle.main.bundleIdentifier ?? "com.isaacmarovitz.Whisky"
     }
 
-    /// A script that runs the program with `ReantryCmd run`. The tool is looked up by the bundle identifier of
-    /// Reantry when the app moved since the shortcut was made. Without it, Reantry itself opens.
+    /// A script that runs the program with `reantry run`, the `ReantryCmd` binary of the app. The tool is looked
+    /// up by the bundle identifier of Reantry when the app moved since the shortcut was made, skipping the copies
+    /// in the Trash or on other volumes. When the tool fails, an alert explains it, then Reantry opens.
     private static func launchScript(for program: Program) -> String {
         let cmdURL = Bundle.main.url(forResource: "ReantryCmd", withExtension: nil)
             ?? Bundle.main.bundleURL.appending(path: cmdPathInBundle)
         let query = "kMDItemCFBundleIdentifier == '\(bundleIdentifier)'"
         let bottlePath = quoted(program.bottle.url.path(percentEncoded: false))
         let programPath = quoted(program.url.path(percentEncoded: false))
+        let alert = "display alert \(appleScriptString(String(localized: "shortcut.error.title")))"
+            + " message \(appleScriptString(String(localized: "shortcut.error.message")))"
 
         return """
         #!/bin/bash
         CMD=\(quoted(cmdURL.path(percentEncoded: false)))
         if [ ! -x "$CMD" ]; then
-            APP=$(/usr/bin/mdfind \(quoted(query)) | /usr/bin/head -n 1)
+            APP=""
+            USER_APP=""
+            OTHER_APP=""
+            while IFS= read -r FOUND; do
+                case "$FOUND" in
+                    "$HOME"/.Trash/*|/Volumes/*) ;;
+                    /Applications/*) APP="$FOUND"; break ;;
+                    "$HOME"/Applications/*) [ -z "$USER_APP" ] && USER_APP="$FOUND" ;;
+                    *) [ -z "$OTHER_APP" ] && OTHER_APP="$FOUND" ;;
+                esac
+            done < <(/usr/bin/mdfind \(quoted(query)))
+            APP="${APP:-${USER_APP:-$OTHER_APP}}"
             CMD="$APP/\(cmdPathInBundle)"
         fi
         if [ -x "$CMD" ]; then
-            exec "$CMD" run --wait \(bottlePath) \(programPath)
+            if "$CMD" run --wait \(bottlePath) \(programPath); then
+                exit 0
+            fi
+            /usr/bin/osascript -e \(quoted(alert))
         fi
         exec /usr/bin/open -b \(quoted(bundleIdentifier))
 
         """
+    }
+
+    /// Quotes a string for AppleScript.
+    private static func appleScriptString(_ string: String) -> String {
+        let escaped = string
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        return "\"" + escaped + "\""
     }
 
     /// Quotes a string for the shell.

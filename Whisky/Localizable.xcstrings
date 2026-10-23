@@ -17910,6 +17910,38 @@
         }
       }
     },
+    "shortcut.error.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The bottle or the program could not be found. You can recreate the shortcut from Reantry."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La bouteille ou le programme est introuvable. Vous pouvez recréer le raccourci depuis Reantry."
+          }
+        }
+      }
+    },
+    "shortcut.error.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The program could not be opened"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d'ouvrir le programme"
+          }
+        }
+      }
+    },
     "shortcut.panel.message" : {
       "localizations" : {
         "en" : {
