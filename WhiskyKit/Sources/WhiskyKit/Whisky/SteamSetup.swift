@@ -102,16 +102,22 @@ public enum SteamSetup {
             throw SteamSetupError.downloadFailed("invalid address \(installerAddress)")
         }
 
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 60
+        configuration.timeoutIntervalForResource = 600
+        let session = URLSession(configuration: configuration)
+        defer { session.finishTasksAndInvalidate() }
+
         let result: (URL, URLResponse)
         do {
-            result = try await URLSession(configuration: .ephemeral).download(from: address)
+            result = try await session.download(from: address)
         } catch {
             throw SteamSetupError.downloadFailed(error.localizedDescription)
         }
-        let status = (result.1 as? HTTPURLResponse)?.statusCode ?? 0
-        guard status == 200 else {
+        guard let response = result.1 as? HTTPURLResponse, response.statusCode == 200 else {
             try? FileManager.default.removeItem(at: result.0)
-            throw SteamSetupError.downloadFailed("the server answered with the status \(status)")
+            let status = (result.1 as? HTTPURLResponse).map { "the status \($0.statusCode)" } ?? "no HTTP status"
+            throw SteamSetupError.downloadFailed("the server answered with \(status)")
         }
 
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
