@@ -1,14 +1,14 @@
 # How to contribute
 
-Thanks for your interest! First, make a fork of Moonshine, make a new branch for your changes, and get coding!
+Thanks for your interest! First, make a fork of Reantry, make a new branch for your changes, and get coding!
 
 # Build environment
 
-Moonshine is built using Xcode 16 on macOS 14 (Sonoma) or later. All external dependencies are handled through the Swift Package Manager.
+Reantry is built using Xcode 16 on macOS 14 (Sonoma) or later. All external dependencies are handled through the Swift Package Manager.
 
 # Code style
 
-Every Moonshine commit is automatically linted using SwiftLint. You can run these checks locally simply by building in Xcode, violations will appear as errors or warnings. For your pull request to be merged, you must meet all the requirements outlined by SwiftLint and have no violations.
+Every Reantry commit is automatically linted using SwiftLint. You can run these checks locally simply by building in Xcode, violations will appear as errors or warnings. For your pull request to be merged, you must meet all the requirements outlined by SwiftLint and have no violations.
 
 Generally, it is not advised to disable a SwiftLint rule, but there are certain situations where it is necessary. Please use your discretion when disabling rules temporarily.
 

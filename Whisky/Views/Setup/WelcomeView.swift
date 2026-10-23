@@ -19,6 +19,9 @@
 import SwiftUI
 import WhiskyKit
 
+/// Name of the Wine row, also used to tell which component to uninstall.
+private let reantryWineName = "Reantry Wine"
+
 struct WelcomeView: View {
     @State var rosettaInstalled: Bool?
     @State var whiskyWineInstalled: Bool?
@@ -55,7 +58,7 @@ struct WelcomeView: View {
                 InstallStatusView(isInstalled: $whiskyWineInstalled,
                                   shouldCheckInstallStatus: $shouldCheckInstallStatus,
                                   showUninstall: true,
-                                  name: "WhiskyWine")
+                                  name: reantryWineName)
             }
             .formStyle(.grouped)
             .scrollDisabled(true)
@@ -145,7 +148,7 @@ struct InstallStatusView: View {
     }
 
     func uninstall() {
-        if name == "WhiskyWine" {
+        if name == reantryWineName {
             WhiskyWineInstaller.uninstall()
         }
 

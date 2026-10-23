@@ -27,14 +27,14 @@ body:
     id: logs
     attributes:
       label: Logs
-      description: Please provide the logs from the launched Wine process. These can be found by pressing `CMD + L` in Moonshine.
+      description: Please provide the logs from the launched Wine process. These can be found by pressing `CMD + L` in Reantry.
       render: bash
     validations:
       required: true
   - type: dropdown
     id: whisky-version
     attributes:
-      label: What version of Moonshine are you using?
+      label: What version of Reantry are you using?
       options:
         - "2.3.5"
         - "<2.3.5"

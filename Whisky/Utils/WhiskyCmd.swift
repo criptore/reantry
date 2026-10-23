@@ -21,14 +21,24 @@ import AppKit
 
 class WhiskyCmd {
     static func install() async {
-        let whiskyCmdURL = Bundle.main.url(forResource: "WhiskyCmd", withExtension: nil)
+        let whiskyCmdURL = Bundle.main.url(forResource: "ReantryCmd", withExtension: nil)
 
         if let whiskyCmdURL = whiskyCmdURL {
-            // swiftlint:disable line_length
+            // Escape the path for an AppleScript string literal, then let
+            // `quoted form of` quote it for the shell.
+            let cmdPath = whiskyCmdURL.path(percentEncoded: false)
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"")
+            // Older versions installed the CLI as /usr/local/bin/whisky, pointing to the binary
+            // that was called WhiskyCmd. Repoint that link only when it is broken.
             let script = """
-            do shell script "ln -fs \(whiskyCmdURL.path(percentEncoded: false)) /usr/local/bin/whisky" with administrator privileges
+            set cmdPath to quoted form of "\(cmdPath)"
+            set oldLink to "/usr/local/bin/whisky"
+            set isBroken to "[ -L " & oldLink & " ] && [ ! -e " & oldLink & " ]"
+            set fixOldLink to "if " & isBroken & "; then ln -fs " & cmdPath & " " & oldLink & "; fi"
+            set linkCmd to "mkdir -p /usr/local/bin && ln -fs " & cmdPath & " /usr/local/bin/reantry && " & fixOldLink
+            do shell script linkCmd with administrator privileges
             """
-            // swiftlint:enable line_length
 
             var error: NSDictionary?
             // Use AppleScript because somehow in 2023 Apple doesn't have good privileged file ops APIs

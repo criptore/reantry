@@ -50,7 +50,7 @@ extension FileHandle {
 
         // The label already names the product, so only the version follows it
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-        header += "Reantry Version: \(version ?? "unknown (WhiskyCmd)")\n"
+        header += "Reantry Version: \(version ?? "unknown (ReantryCmd)")\n"
         header += "Date: \(ISO8601DateFormatter().string(from: Date.now))\n"
         header += "macOS Version: \(macOSVersion.majorVersion).\(macOSVersion.minorVersion).\(macOSVersion.patchVersion)\n\n"
         write(line: header)
@@ -77,7 +77,7 @@ extension FileHandle {
         header += "Bottle URL: \(bottle.url.path)\n\n"
 
         if let version = WhiskyWineInstaller.whiskyWineVersion() {
-            header += "WhiskyWine Version: \(version.major).\(version.minor).\(version.patch)\n"
+            header += "Reantry Wine Version: \(version.major).\(version.minor).\(version.patch)\n"
         }
         if let runtime = bottle.settings.wineRuntime {
             header += "Wine Runtime: \(runtime)\n"
