@@ -574,7 +574,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Create Shortcut"
+            "value" : "Create Shortcut in Applications…"
           }
         },
         "es" : {
@@ -592,7 +592,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Créer raccourci"
+            "value" : "Créer un raccourci dans Applications…"
           }
         },
         "it" : {
@@ -17906,6 +17906,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%2$@ 中的 %1$@"
+          }
+        }
+      }
+    },
+    "shortcut.panel.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The shortcut opens this program with Reantry. Save it in Applications or on the Desktop."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le raccourci ouvre ce programme avec Reantry. Enregistrez-le dans Applications ou sur le Bureau."
           }
         }
       }

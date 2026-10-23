@@ -112,13 +112,20 @@ enum CLI {
         throw ValidationError("Unknown Windows version \"\(name)\". Valid values: \(valid).")
     }
 
-    /// Finds a bottle by its name.
+    /// Finds a bottle by its name, or else by the absolute path of its folder, which outlasts a rename.
     static func bottle(named name: String) throws -> Bottle {
         var bottlesList = BottleData()
-        guard let bottle = bottlesList.loadBottles().first(where: { $0.settings.name == name }) else {
-            throw fail("No bottle called \"\(name)\" found.")
+        let bottles = bottlesList.loadBottles()
+        if let bottle = bottles.first(where: { $0.settings.name == name }) {
+            return bottle
         }
-        return bottle
+        if name.hasPrefix("/") {
+            let path = URL(fileURLWithPath: name).standardizedFileURL.path
+            if let bottle = bottles.first(where: { $0.url.standardizedFileURL.path == path }) {
+                return bottle
+            }
+        }
+        throw fail("No bottle called \"\(name)\" found.")
     }
 
     /// Fails with a hint when Wine is not installed.
