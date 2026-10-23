@@ -6,6 +6,16 @@
         <description>Reantry updates</description>
         <language>en</language>
         <item>
+            <title>Version 1.0.0</title>
+            <sparkle:version>45</sparkle:version>
+            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/criptore/reantry/releases/download/v1.0.0/Reantry.app.zip"
+                       length="4878225"
+                       type="application/octet-stream"
+                       sparkle:edSignature="mKKxO0oKzZy4aJJIgYNpTrKf+HQwfPYNr3Nb9+DxwvF4/+PIMZdqY+YU1UQVbKg0Dyi6MKLVV8a17+zbvkSiBA==" />
+        </item>
+        <item>
             <title>Version 0.3.2</title>
             <sparkle:version>44</sparkle:version>
             <sparkle:shortVersionString>0.3.2</sparkle:shortVersionString>
