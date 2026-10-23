@@ -418,6 +418,7 @@
 				6E40495029CCA19C006E3F1B /* Resources */,
 				6E50D98129CD0EAF008C39F6 /* SwiftLint */,
 				6E95F66C2AB3EF2F00D585D1 /* Embed WhiskyCmd */,
+				6E5A1D0C2EB0F00100A1B2C3 /* Link WhiskyCmd */,
 				6EFDF65A2AAE2DA800EF622F /* Embed Foundation Extensions */,
 			);
 			buildRules = (
@@ -590,6 +591,25 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "export PATH=\"$PATH:/opt/homebrew/bin\"\nif which swiftlint > /dev/null; then\n    echo \"Running SwiftLint\"\n    swiftlint --strict\nelse\n    echo \"error: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\n    exit -1\nfi\n";
+		};
+		6E5A1D0C2EB0F00100A1B2C3 /* Link WhiskyCmd */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Link WhiskyCmd";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Older installs link /usr/local/bin/whisky to Contents/Resources/WhiskyCmd.\n# Keep that path working after the rename.\nln -sfh ReantryCmd \"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/WhiskyCmd\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
