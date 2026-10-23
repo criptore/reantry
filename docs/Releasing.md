@@ -115,16 +115,16 @@ given.
 # Wine 11.0 with macOS patches and DXMT (Sikarugir)
 ./scripts/build_libraries.sh --engine sikarugir
 
-# Wine Staging with D3DMetal, from the mounted Game Porting Toolkit DMG (local use only)
+# Wine Staging with D3DMetal, from the mounted Game Porting Toolkit DMG
 ./scripts/build_libraries.sh --engine staging --gptk "/Volumes/Evaluation environment for Windows games 3.0"
 
-# Wine built from the CrossOver sources (see below), with D3DMetal (local use only)
+# Wine built from the CrossOver sources (see below), with D3DMetal
 ./scripts/build_libraries.sh --engine crossover --wine-dir build/crossover-wine-26.3.0 \
     --gptk "/Volumes/Evaluation environment for Windows games 3.0"
 
-# Build and upload to the "libraries" release (needs `gh auth login`).
-# Refused together with --gptk: D3DMetal must not be published.
-./scripts/build_libraries.sh --publish
+# Build and upload to the "libraries" release (needs `gh auth login`)
+./scripts/build_libraries.sh --wine-dir build/crossover-wine-26.3.0 \
+    --gptk "/Volumes/Evaluation environment for Windows games 3.0" --publish
 ```
 
 Versions can be overridden with `GPTK_VERSION`, `SIKARUGIR_ENGINE`, `WINE_VERSION`, `WINE_FLAVOR`
@@ -364,15 +364,13 @@ run a DirectX 11 game with each graphics backend.
 
 Known points to check:
 
-- **D3DMetal licence.** Do not ship Apple's D3DMetal in a published
-  archive: Apple's Game Porting Toolkit licence is non-commercial and its
-  components must not be separated from the toolkit for redistribution.
-  Publish with `--engine crossover` (or `staging`) and without `--gptk`:
-  the script never merges D3DMetal without `--gptk`, and `--publish` refuses
-  to run when `--gptk` is given. Each user then installs D3DMetal from their
-  own Game Porting Toolkit with `scripts/install_gptk.sh` to enable
-  D3DMetal/WineD3D. With `--engine gptk`, D3DMetal is already included in
-  that engine's own archive and remains subject to the same restriction.
+- **D3DMetal licence.** Apple's Game Porting Toolkit licence forbids
+  commercial distribution, so an archive that includes D3DMetal may only be
+  published free of charge, as Reantry is. The script never merges D3DMetal
+  without an explicit `--gptk`, so a Game Porting Toolkit that happens to be
+  mounted is never picked up by accident. Users of an archive without
+  D3DMetal can add it from their own Game Porting Toolkit with
+  `scripts/install_gptk.sh`.
 - **Sikarugir licence.** The README of
   [Sikarugir-App/Engines](https://github.com/Sikarugir-App/Engines) contains
   only a title and states no licence, and the repository declares none. Wine
