@@ -37,7 +37,7 @@ extension Program {
             do {
                 try await Wine.runProgram(
                     at: self.url, args: arguments, bottle: self.bottle, environment: environment
-                )
+                )?.showAlert()
             } catch {
                 await MainActor.run {
                     self.showRunError(message: error.localizedDescription)
