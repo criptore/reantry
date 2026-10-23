@@ -838,6 +838,33 @@ verify_linkage() {
         die "the Unix modules above contain Homebrew paths (probably a SONAME_LIB* recorded by configure)"
     fi
     log "OK: otool -L shows only /usr/lib, /System and @rpath/@loader_path references"
+    verify_weak_imports
+}
+
+# Symbols newer than the deployment target become weak imports, which are NULL on older
+# macOS. Only the ones Wine checks at run time, or only uses on new systems, are allowed.
+# shellcheck disable=SC2016 # literal $ in the Objective-C class prefix
+ALLOWED_WEAK_IMPORTS='^_+(ulock_wait2|availability_version_check)$|^_os_sync_|^_cl[A-Z]|^_OBJC_CLASS_\$_MTL|^_MTL'
+
+verify_weak_imports() {
+    local file symbols bad=0
+    log "Checking the Unix modules for weak imports missing on macOS $MACOSX_DEPLOYMENT_TARGET"
+    for file in "$STAGE"/bin/* "$STAGE"/lib/wine/*-unix/*; do
+        # Links (e.g. to D3DMetal's libd3dshared) point at third-party code built for newer systems.
+        [ -L "$file" ] && continue
+        is_macho "$file" || continue
+        symbols=$(nm -m "$file" 2>/dev/null | awk '/\(undefined\) weak external/ {print $4}' \
+            | grep -vE "$ALLOWED_WEAK_IMPORTS" || true)
+        if [ -n "$symbols" ]; then
+            echo "  ${file#"$STAGE"/}:"
+            echo "    ${symbols//$'\n'/$'\n'    }"
+            bad=1
+        fi
+    done
+    if [ "$bad" -ne 0 ]; then
+        die "the symbols above are newer than macOS $MACOSX_DEPLOYMENT_TARGET and would be NULL on older systems. Disable them in configure (ac_cv_func_<name>=no) or add them to ALLOWED_WEAK_IMPORTS if Wine checks them at run time"
+    fi
+    log "OK: no unexpected weak imports"
 }
 
 run_tests() {
@@ -1022,6 +1049,10 @@ CONFIGURE_ARGS=(
     "ac_cv_lib_soname_SDL2=@rpath/$SDL2_DYLIB"
     "ac_cv_lib_soname_MoltenVK=@rpath/libMoltenVK.dylib"
     "ac_cv_lib_soname_vulkan="
+    # pipe2() only exists in recent macOS versions. The SDK makes it a weak import, and
+    # ntdll calls it without checking, so Wine crashes at startup on older macOS (seen on
+    # macOS 15). Use Wine's pipe() + fcntl() fallback instead.
+    "ac_cv_func_pipe2=no"
     ${DEV_CONFIGURE_ARGS[@]+"${DEV_CONFIGURE_ARGS[@]}"}
 )
 if [ -n "$EXTRA_CONFIGURE_ARGS" ]; then
