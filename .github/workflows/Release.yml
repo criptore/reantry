@@ -27,7 +27,7 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      # The Whisky target has a SwiftLint build phase that fails when swiftlint is missing.
+      # The Whisky target (built as Reantry.app) has a SwiftLint build phase that fails when swiftlint is missing.
       - name: Install SwiftLint
         run: brew install swiftlint
 
@@ -54,14 +54,14 @@ jobs:
       - name: Locate build products
         id: products
         run: |
-          APP=$(find ~/Library/Developer/Xcode/DerivedData -name "Whisky.app" -type d | head -1)
-          CMD=$(find ~/Library/Developer/Xcode/DerivedData -name "WhiskyCmd" -type f -perm +111 | head -1)
+          APP=$(find ~/Library/Developer/Xcode/DerivedData -name "Reantry.app" -type d | head -1)
+          CMD=$(find ~/Library/Developer/Xcode/DerivedData -name "ReantryCmd" -type f -perm +111 | head -1)
           if [ -z "$APP" ]; then
-            echo "::error::Whisky.app not found in DerivedData after the build"
+            echo "::error::Reantry.app not found in DerivedData after the build"
             exit 1
           fi
           if [ -z "$CMD" ]; then
-            echo "::error::WhiskyCmd executable not found in DerivedData after the build"
+            echo "::error::ReantryCmd executable not found in DerivedData after the build"
             exit 1
           fi
           echo "app=$APP" >> "$GITHUB_OUTPUT"

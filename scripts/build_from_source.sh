@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Moonshine — Build from Source
+# Reantry — Build from Source
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/criptore/reantry/main/scripts/build_from_source.sh | bash
 # Or from within the repo:
@@ -11,7 +11,7 @@ REPO_URL="https://github.com/criptore/reantry.git"
 SCHEME="Whisky"
 CONFIGURATION="Release"
 
-echo "==> Moonshine — Build from Source"
+echo "==> Reantry — Build from Source"
 echo ""
 
 # --- Step 1: Homebrew ---
@@ -49,7 +49,7 @@ else
 fi
 
 # --- Step 4: Build ---
-BUILD_DIR="/tmp/moonshine-build"
+BUILD_DIR="/tmp/reantry-build"
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
@@ -64,9 +64,9 @@ xcodebuild \
     CODE_SIGNING_ALLOWED=NO \
     build
 
-APP_PATH=$(find "$BUILD_DIR/DerivedData" -name "Whisky.app" -type d | head -1)
+APP_PATH=$(find "$BUILD_DIR/DerivedData" -name "Reantry.app" -type d | head -1)
 if [ -z "$APP_PATH" ]; then
-    echo "Error: Whisky.app not found after build"
+    echo "Error: Reantry.app not found after build"
     exit 1
 fi
 

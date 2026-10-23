@@ -3,9 +3,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-BUILD_DIR="/tmp/moonshine-build"
+BUILD_DIR="/tmp/reantry-build"
 STAGING_DIR="$BUILD_DIR/staging"
-DMG_NAME="Moonshine.dmg"
+DMG_NAME="Reantry.dmg"
 DMG_OUTPUT="$PROJECT_DIR/$DMG_NAME"
 SCHEME="Whisky"
 CONFIGURATION="Release"
@@ -26,20 +26,20 @@ xcodebuild \
     CODE_SIGNING_ALLOWED=NO \
     build
 
-APP_PATH=$(find "$BUILD_DIR/DerivedData" -name "Whisky.app" -type d | head -1)
+APP_PATH=$(find "$BUILD_DIR/DerivedData" -name "Reantry.app" -type d | head -1)
 if [ -z "$APP_PATH" ]; then
-    echo "Error: Whisky.app not found in DerivedData"
+    echo "Error: Reantry.app not found in DerivedData"
     exit 1
 fi
 
 echo "==> Staging DMG contents..."
 mkdir -p "$STAGING_DIR"
-cp -R "$APP_PATH" "$STAGING_DIR/Moonshine.app"
+cp -R "$APP_PATH" "$STAGING_DIR/Reantry.app"
 ln -s /Applications "$STAGING_DIR/Applications"
 
 echo "==> Creating DMG..."
 hdiutil create \
-    -volname "Moonshine" \
+    -volname "Reantry" \
     -srcfolder "$STAGING_DIR" \
     -ov \
     -format UDZO \
