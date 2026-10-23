@@ -66,7 +66,8 @@ extension Whisky {
             Without --wait, the program is started in the background and this command returns right away, \
             printing the log file that receives its output. With --wait, it runs attached to this command, and \
             the exit status of the program becomes the exit status of this command. Options go before the \
-            bottle, everything after the program is passed to it, dashes included. A leading -- is optional.
+            bottle, everything after the program is passed to it, dashes included. A leading -- is optional. \
+            The exit status is 66 (EX_NOINPUT) when the bottle or the program cannot be found.
             Example: reantry run --wait mybottle game.exe -windowed
             """
         )
@@ -79,9 +80,17 @@ extension Whisky {
         @Argument(parsing: .captureForPassthrough, help: "Arguments for the program, dashes included.")
         var args: [String] = []
 
+        /// The exit status when the bottle or the program cannot be found, so that callers such as the program
+        /// shortcuts can tell it from the exit status of the program.
+        static let notFound = ExitCode(66)
+
         mutating func run() async throws {
-            let bottle = try CLI.bottle(named: bottleName)
+            guard let bottle = try? CLI.bottle(named: bottleName) else { throw Self.notFound }
             let url = URL(fileURLWithPath: path)
+            guard FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else {
+                Console.err("Error: No program at \(url.path(percentEncoded: false)).")
+                throw Self.notFound
+            }
             let program = Program(url: url, bottle: bottle)
 
             try CLI.requireWine()

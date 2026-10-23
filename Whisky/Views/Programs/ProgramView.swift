@@ -55,25 +55,7 @@ struct ProgramView: View {
                     NSWorkspace.shared.activateFileViewerSelecting([program.url])
                 }
                 Button("button.createShortcut") {
-                    let panel = NSSavePanel()
-                    let applicationDir = FileManager.default.urls(for: .applicationDirectory, in: .localDomainMask)[0]
-                    let name = program.name.replacingOccurrences(of: ".exe", with: "")
-                    panel.directoryURL = applicationDir
-                    panel.canCreateDirectories = true
-                    panel.allowedContentTypes = [UTType.applicationBundle]
-                    panel.allowsOtherFileTypes = false
-                    panel.isExtensionHidden = true
-                    panel.nameFieldStringValue = name + ".app"
-                    panel.begin { result in
-                        if result == .OK {
-                            if let url = panel.url {
-                                let name = url.deletingPathExtension().lastPathComponent
-                                Task(priority: .userInitiated) {
-                                    await ProgramShortcut.createShortcut(program, app: url, name: name)
-                                }
-                            }
-                        }
-                    }
+                    ProgramShortcut.chooseLocation(for: program)
                 }
                 Button("button.run") {
                     programLoading = true

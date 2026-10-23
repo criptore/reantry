@@ -36,10 +36,8 @@ on [Whisky](https://github.com/Whisky-App/Whisky) by Isaac Marovitz and on
 ## Requirements
 
 - A Mac with Apple Silicon (M1 or later).
-- macOS 14 (Sonoma) or later.
-- D3DMetal, as shipped in the current Wine libraries, needs macOS 26 or later.
-  On older versions, use the DXVK or WineD3D backend.
-- Reantry is tested on macOS 27.
+- macOS 27. The current Wine libraries are built and tested on it only: on
+  older versions Wine may not start, and D3DMetal needs macOS 26 or later.
 
 ## Install
 
@@ -150,9 +148,8 @@ described in [docs/Releasing.md](docs/Releasing.md).
   client.
 - **Games with anti-cheat** (kernel-level or not supported by Wine) do not
   work.
-- **macOS versions older than 26:** D3DMetal in the current libraries does not
-  run there. This is fixed in the next libraries build; until then, use DXVK or
-  WineD3D.
+- **macOS versions older than 27** are not supported: the Wine libraries can
+  crash at startup there.
 
 Wine logs are written to `~/Library/Logs/com.isaacmarovitz.Whisky/`, one file
 per run. Please attach the log when you

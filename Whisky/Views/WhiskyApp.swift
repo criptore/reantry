@@ -107,6 +107,13 @@ struct WhiskyApp: App {
                         openURL(url)
                     }
                 }
+                Divider()
+                Button("open.logs") {
+                    WhiskyApp.openLogsFolder()
+                }
+                Button("diagnostics.copyReport") {
+                    WhiskyApp.copyDiagnosticReport()
+                }
             }
         }
         Settings {
@@ -124,8 +131,46 @@ struct WhiskyApp: App {
         }
     }
 
+    /// Asks for a confirmation, then stops every process of the bottle, calling `onStopped` once they ended.
+    /// Unsaved progress in its programs is lost.
+    static func confirmStopBottle(_ bottle: Bottle, onStopped: @escaping () -> Void = {}) {
+        let alert = NSAlert()
+        alert.messageText = String(format: String(localized: "stopAll.alert.msg"), bottle.settings.name)
+        alert.informativeText = String(localized: "stopAll.alert.info")
+        alert.alertStyle = .warning
+        let stop = alert.addButton(withTitle: String(localized: "button.stopAll"))
+        stop.hasDestructiveAction = true
+        alert.addButton(withTitle: String(localized: "create.cancel"))
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        Task(priority: .userInitiated) {
+            do {
+                try await Wine.stopBottle(bottle: bottle)
+            } catch {
+                print("Failed to stop bottle: \(error)")
+            }
+            onStopped()
+        }
+    }
+
     static func openLogsFolder() {
         NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: Wine.logsFolder.path)
+    }
+
+    /// Copies a report about the app, the Mac and optionally a bottle, to paste in a bug report
+    static func copyDiagnosticReport(bottle: Bottle? = nil) {
+        Task.detached(priority: .userInitiated) {
+            let report = Wine.diagnosticReport(bottle: bottle)
+            await MainActor.run {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(report, forType: .string)
+
+                let alert = NSAlert()
+                alert.messageText = String(localized: "diagnostics.reportCopied")
+                alert.addButton(withTitle: String(localized: "button.ok"))
+                alert.runModal()
+            }
+        }
     }
 
     static func deleteOldLogs() {

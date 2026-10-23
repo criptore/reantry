@@ -41,6 +41,12 @@ struct BottleListEntry: View {
                 }
             }
             .contextMenu {
+                Button("button.stopAll", systemImage: "stop.fill") {
+                    WhiskyApp.confirmStopBottle(bottle)
+                }
+                .disabled(!bottle.isAvailable)
+                .labelStyle(.titleAndIcon)
+                Divider()
                 Button("button.rename", systemImage: "pencil.line") {
                     showBottleRename.toggle()
                 }
@@ -95,6 +101,10 @@ struct BottleListEntry: View {
                     NSWorkspace.shared.activateFileViewerSelecting([bottle.url])
                 }
                 .disabled(!bottle.isAvailable)
+                .labelStyle(.titleAndIcon)
+                Button("diagnostics.copyReport", systemImage: "stethoscope") {
+                    WhiskyApp.copyDiagnosticReport(bottle: bottle)
+                }
                 .labelStyle(.titleAndIcon)
             }
     }

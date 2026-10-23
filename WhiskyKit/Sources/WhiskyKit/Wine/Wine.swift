@@ -41,7 +41,7 @@ public class Wine {
     }
 
     /// Run a `wine` process with the given arguments and environment variables returning a stream of output
-    private static func runWineProcess(
+    static func runWineProcess(
         name: String? = nil, args: [String], environment: [String: String] = [:],
         fileHandle: FileHandle?, directory: URL? = nil, binFolder: URL = WhiskyWineInstaller.binFolder
     ) throws -> AsyncStream<ProcessOutput> {
@@ -95,10 +95,11 @@ public class Wine {
         )
     }
 
-    /// Execute a program directly via `wine {url}`, capturing all output including crash messages
+    /// Execute a program via `wine {url}`, logging all its output. Returns how Wine failed if it stopped at launch.
+    @discardableResult
     public static func runProgram(
         at url: URL, args: [String] = [], bottle: Bottle, environment: [String: String] = [:]
-    ) async throws {
+    ) async throws -> WineLaunchFailure? {
         await removeSteamAutostartIfPresent(bottle: bottle)
         switch bottle.settings.graphicsBackend {
         case .d3dMetal:
@@ -110,12 +111,7 @@ public class Wine {
             try enableWineD3D(bottle: bottle)
         }
 
-        for await _ in try Self.runWineProcess(
-            name: url.lastPathComponent,
-            args: [url.path(percentEncoded: false)] + args,
-            bottle: bottle, environment: environment,
-            directory: url.deletingLastPathComponent()
-        ) { }
+        return try await runLoggingLaunchFailure(at: url, args: args, bottle: bottle, environment: environment)
     }
 
     public static func generateRunCommand(
@@ -221,11 +217,16 @@ public class Wine {
     public static func killBottle(bottle: Bottle) throws {
         Task.detached(priority: .userInitiated) {
             do {
-                try await runWineserver(["-k"], bottle: bottle)
+                try await stopBottle(bottle: bottle)
             } catch {
                 Logger.wineKit.error("Failed to kill the bottle \(bottle.settings.name): \(error)")
             }
         }
+    }
+
+    /// Stops every process of the bottle with `wineserver -k` from the bottle's runtime, and returns once it ended.
+    public static func stopBottle(bottle: Bottle) async throws {
+        _ = try await runWineserver(["-k"], bottle: bottle)
     }
 
     /// Construct an environment merging the bottle values with the given values
@@ -329,14 +330,11 @@ extension Wine {
         )
     }
 
+    /// Only reads the value: Wine leaves the retina mode off when it is missing.
     public static func retinaMode(bottle: Bottle) async throws -> Bool {
-        let values: Set<String> = ["y", "n"]
-        guard let output = try await Wine.queryRegistryKey(
+        let output = try await Wine.queryRegistryKey(
             bottle: bottle, key: RegistryKey.macDriver.rawValue, name: "RetinaMode", type: .string
-        ), values.contains(output) else {
-            try await changeRetinaMode(bottle: bottle, retinaMode: false)
-            return false
-        }
+        )
         return output == "y"
     }
 

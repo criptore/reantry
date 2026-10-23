@@ -62,6 +62,13 @@ struct BottleView: View {
             }
             .bottomBar {
                 HStack {
+                    Button("button.stopAll", systemImage: "stop.fill") {
+                        WhiskyApp.confirmStopBottle(bottle) {
+                            programLoading = false
+                        }
+                    }
+                    .labelStyle(.titleAndIcon)
+                    .help("stopAll.help")
                     Spacer()
                     Button("button.cDrive") {
                         bottle.openCDrive()
@@ -88,7 +95,7 @@ struct BottleView: View {
                                             if url.pathExtension == "bat" {
                                                 try await Wine.runBatchFile(url: url, bottle: bottle)
                                             } else {
-                                                try await Wine.runProgram(at: url, bottle: bottle)
+                                                try await Wine.runProgram(at: url, bottle: bottle)?.showAlert()
                                             }
                                         } catch {
                                             print("Failed to run external program: \(error)")
